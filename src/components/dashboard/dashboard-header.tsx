@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import {
   Avatar,
@@ -18,6 +19,18 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import Logo from "@/components/icons/logo";
 import { HelpCircle, LayoutGrid, LogOut, Settings, User as UserIcon } from "lucide-react";
 import { JobsPanel } from "./jobs-panel";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog";
+
+const helpText = {
+  title: "Как пользоваться приложением",
+  desc1: "Добро пожаловать в FlowForge AI! Вот краткое руководство:",
+  step1: "1. Добавьте ноды: Используйте панель инструментов вверху, чтобы добавить ноды для генерации текста, изображений, видео или аудио на холст.",
+  step2: "2. Настройте ноды: Кликните на ноду, чтобы выделить ее. В появившихся полях введите промпт и выберите настройки (модель, соотношение сторон).",
+  step3: "3. Соединяйте ноды: Перетащите линию от правой точки одной ноды к левой точке другой, чтобы создать каскад. Результат первой ноды будет использован как входные данные для второй.",
+  step4: "4. Генерируйте: Нажмите кнопку 'Generate' на ноде, чтобы запустить процесс. Дождитесь результата в окне предпросмотра.",
+  step5: "5. Управляйте результатом: Вы можете скопировать текст или скачать медиафайлы, а также очистить вывод для повторной генерации."
+}
+
 
 export function DashboardHeader() {
   return (
@@ -32,10 +45,27 @@ export function DashboardHeader() {
         </nav>
         <div className="flex flex-1 items-center justify-end gap-2">
           <JobsPanel />
-          <Button variant="ghost" size="icon">
-            <HelpCircle className="h-5 w-5" />
-            <span className="sr-only">Help</span>
-          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="icon">
+                    <HelpCircle className="h-5 w-5" />
+                    <span className="sr-only">Help</span>
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>{helpText.title}</DialogTitle>
+                    <DialogDescription>{helpText.desc1}</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4 text-sm text-muted-foreground">
+                    <p>{helpText.step1}</p>
+                    <p>{helpText.step2}</p>
+                    <p>{helpText.step3}</p>
+                    <p>{helpText.step4}</p>
+                    <p>{helpText.step5}</p>
+                </div>
+            </DialogContent>
+        </Dialog>
           <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -82,3 +112,4 @@ export function DashboardHeader() {
     </header>
   );
 }
+

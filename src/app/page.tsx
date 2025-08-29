@@ -1,3 +1,6 @@
+
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Logo from "@/components/icons/logo";
@@ -15,12 +18,125 @@ import {
   Instagram,
   Send,
   MessageCircle,
+  HelpCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import Image from "next/image";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useState } from "react";
+
+const translations = {
+  ru: {
+    launchApp: "Launch App",
+    headline: "Каскадная генерация контента с помощью AI",
+    subheadline: "Создавайте уникальные изображения, видео, текст и аудио с помощью нашего интуитивного нодового редактора.",
+    startCreating: "Начать творить",
+    learnMore: "Узнать больше",
+    allTools: "Все инструменты в одном месте",
+    allToolsSub: "Объединяйте различные AI-модели в единый рабочий процесс для достижения невероятных результатов.",
+    imgGen: "Генерация изображений",
+    imgGenDesc: "Создавайте фотореалистичные изображения и арты из текстовых описаний с помощью передовых моделей.",
+    videoGen: "Генерация видео",
+    videoGenDesc: "Превращайте текст или изображения в короткие видеоролики, задавая стиль и динамику.",
+    textGen: "Генерация текстов",
+    textGenDesc: "Пишите статьи, посты, сценарии и многое другое, используя мощные языковые модели.",
+    audioGen: "Генерация аудио",
+    audioGenDesc: "Синтезируйте речь, создавайте музыку и звуковые эффекты для ваших проектов.",
+    cascade: "Каскадные цепочки",
+    cascadeDesc: "Соединяйте ноды, чтобы результат одной генерации стал основой для следующей.",
+    visualEditor: "Визуальный редактор",
+    visualEditorDesc: "Управляйте всем процессом генерации в удобном drag-and-drop редакторе.",
+    pricing: "Простые и понятные тарифы",
+    pricingSub: "Выберите план, который подходит именно вам. Начните бесплатно.",
+    free: "Free",
+    freePrice: "$0",
+    freePeriod: "/ month",
+    freeFeatures: ["100 генераций", "Базовые модели", "Поддержка по email"],
+    freeButton: "Начать бесплатно",
+    creator: "Creator",
+    creatorPrice: "$15",
+    creatorPeriod: "/ month",
+    creatorFeatures: ["1000 генераций", "Продвинутые модели", "Приоритетная поддержка", "Доступ к новым функциям"],
+    creatorButton: "Выбрать Creator",
+    pro: "Pro Creator",
+    proPrice: "$40",
+    proPeriod: "/ month",
+    proFeatures: ["Безлимитные генерации", "Все модели, включая премиум", "Персональный менеджер", "API доступ"],
+    proButton: "Выбрать Pro",
+    contact: "Связаться",
+    privacy: "Политика конфиденциальности",
+    whitepapers: "Белые листы",
+    copyright: `© ${new Date().getFullYear()} FlowForge AI. All rights reserved.`,
+    helpTitle: "Как пользоваться приложением",
+    helpDesc1: "Добро пожаловать в FlowForge AI! Вот краткое руководство:",
+    helpStep1: "1. Добавьте ноды: Используйте панель инструментов вверху, чтобы добавить ноды для генерации текста, изображений, видео или аудио на холст.",
+    helpStep2: "2. Настройте ноды: Кликните на ноду, чтобы выделить ее. В появившихся полях введите промпт и выберите настройки (модель, соотношение сторон).",
+    helpStep3: "3. Соединяйте ноды: Перетащите линию от правой точки одной ноды к левой точке другой, чтобы создать каскад. Результат первой ноды будет использован как входные данные для второй.",
+    helpStep4: "4. Генерируйте: Нажмите кнопку 'Generate' на ноде, чтобы запустить процесс. Дождитесь результата в окне предпросмотра.",
+    helpStep5: "5. Управляйте результатом: Вы можете скопировать текст или скачать медиафайлы, а также очистить вывод для повторной генерации.",
+  },
+  en: {
+    launchApp: "Launch App",
+    headline: "Cascading Content Generation with AI",
+    subheadline: "Create unique images, videos, text, and audio with our intuitive node-based editor.",
+    startCreating: "Start Creating",
+    learnMore: "Learn More",
+    allTools: "All Tools in One Place",
+    allToolsSub: "Combine various AI models into a single workflow to achieve incredible results.",
+    imgGen: "Image Generation",
+    imgGenDesc: "Create photorealistic images and art from text descriptions using advanced models.",
+    videoGen: "Video Generation",
+    videoGenDesc: "Turn text or images into short video clips, defining the style and dynamics.",
+    textGen: "Text Generation",
+    textGenDesc: "Write articles, posts, scripts, and more using powerful language models.",
+    audioGen: "Audio Generation",
+    audioGenDesc: "Synthesize speech, create music, and sound effects for your projects.",
+    cascade: "Cascading Chains",
+    cascadeDesc: "Connect nodes so that the result of one generation becomes the input for the next.",
+    visualEditor: "Visual Editor",
+    visualEditorDesc: "Manage the entire generation process in a convenient drag-and-drop editor.",
+    pricing: "Simple and Clear Pricing",
+    pricingSub: "Choose the plan that's right for you. Start for free.",
+    free: "Free",
+    freePrice: "$0",
+    freePeriod: "/ month",
+    freeFeatures: ["100 generations", "Basic models", "Email support"],
+    freeButton: "Start for free",
+    creator: "Creator",
+    creatorPrice: "$15",
+    creatorPeriod: "/ month",
+    creatorFeatures: ["1000 generations", "Advanced models", "Priority support", "Access to new features"],
+    creatorButton: "Choose Creator",
+    pro: "Pro Creator",
+    proPrice: "$40",
+    proPeriod: "/ month",
+    proFeatures: ["Unlimited generations", "All models, including premium", "Personal manager", "API access"],
+    proButton: "Choose Pro",
+    contact: "Contact",
+    privacy: "Privacy Policy",
+    whitepapers: "Whitepapers",
+    copyright: `© ${new Date().getFullYear()} FlowForge AI. All rights reserved.`,
+    helpTitle: "How to Use the App",
+    helpDesc1: "Welcome to FlowForge AI! Here's a quick guide:",
+    helpStep1: "1. Add Nodes: Use the top toolbar to add nodes for generating text, images, video, or audio to the canvas.",
+    helpStep2: "2. Configure Nodes: Click on a node to select it. In the fields that appear, enter your prompt and choose settings (model, aspect ratio).",
+    helpStep3: "3. Connect Nodes: Drag a line from the right handle of one node to the left handle of another to create a cascade. The result of the first node will be used as input for the second.",
+    helpStep4: "4. Generate: Press the 'Generate' button on a node to start the process. Wait for the result in the preview window.",
+    helpStep5: "5. Manage Output: You can copy text or download media files, and clear the output to generate again.",
+  }
+};
+
 
 export default function Home() {
+  const [lang, setLang] = useState<'ru' | 'en'>('ru');
+  const t = translations[lang];
+
+  const toggleLang = () => {
+    setLang(prevLang => prevLang === 'ru' ? 'en' : 'ru');
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-background font-body">
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -29,9 +145,14 @@ export default function Home() {
             <Logo className="h-6 w-6" />
             <span className="font-bold inline-block">FlowForge AI</span>
           </Link>
-          <div className="flex flex-1 items-center justify-end">
+          <div className="flex flex-1 items-center justify-end gap-2">
+            <HelpModal t={t} />
+            <ThemeToggle />
             <Button asChild>
-              <Link href="/dashboard">Launch App</Link>
+              <Link href="/dashboard">{t.launchApp}</Link>
+            </Button>
+            <Button variant="outline" size="sm" onClick={toggleLang} className="w-20">
+              {lang === 'ru' ? 'EN' : 'RU'}
             </Button>
           </div>
         </div>
@@ -51,17 +172,17 @@ export default function Home() {
           <div className="container py-24 sm:py-32 lg:py-40">
             <div className="max-w-2xl mx-auto text-center">
               <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl font-headline">
-                Каскадная генерация контента с помощью AI
+                {t.headline}
               </h1>
               <p className="mt-6 text-lg leading-8 text-muted-foreground">
-                Создавайте уникальные изображения, видео, текст и аудио с помощью нашего интуитивного нодового редактора.
+                {t.subheadline}
               </p>
               <div className="mt-10 flex items-center justify-center gap-x-6">
                 <Button size="lg" asChild>
-                  <Link href="/dashboard">Начать творить</Link>
+                  <Link href="/dashboard">{t.startCreating}</Link>
                 </Button>
                 <Button size="lg" variant="outline" asChild>
-                  <Link href="#features">Узнать больше</Link>
+                  <Link href="#features">{t.learnMore}</Link>
                 </Button>
               </div>
             </div>
@@ -97,36 +218,36 @@ export default function Home() {
         
         <section id="features" className="container py-24 sm:py-32">
           <div className="max-w-2xl mx-auto text-center mb-16">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-headline">Все инструменты в одном месте</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-headline">{t.allTools}</h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Объединяйте различные AI-модели в единый рабочий процесс для достижения невероятных результатов.
+              {t.allToolsSub}
             </p>
           </div>
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
             <FeatureCard
               icon={<ImageIcon className="w-8 h-8 text-primary" />}
-              title="Генерация изображений"
-              description="Создавайте фотореалистичные изображения и арты из текстовых описаний с помощью передовых моделей."
+              title={t.imgGen}
+              description={t.imgGenDesc}
             />
             <FeatureCard
               icon={<Clapperboard className="w-8 h-8 text-primary" />}
-              title="Генерация видео"
-              description="Превращайте текст или изображения в короткие видеоролики, задавая стиль и динамику."
+              title={t.videoGen}
+              description={t.videoGenDesc}
             />
             <FeatureCard
               icon={<Bot className="w-8 h-8 text-primary" />}
-              title="Генерация текстов"
-              description="Пишите статьи, посты, сценарии и многое другое, используя мощные языковые модели."
+              title={t.textGen}
+              description={t.textGenDesc}
             />
             <FeatureCard
               icon={<Mic className="w-8 h-8 text-primary" />}
-              title="Генерация аудио"
-              description="Синтезируйте речь, создавайте музыку и звуковые эффекты для ваших проектов."
+              title={t.audioGen}
+              description={t.audioGenDesc}
             />
             <FeatureCard
               icon={<LinkIcon className="w-8 h-8 text-primary" />}
-              title="Каскадные цепочки"
-              description="Соединяйте ноды, чтобы результат одной генерации стал основой для следующей."
+              title={t.cascade}
+              description={t.cascadeDesc}
             />
              <FeatureCard
               icon={
@@ -139,43 +260,43 @@ export default function Home() {
                   <path d="M168,152a8,8,0,0,1-8,8H96a8,8,0,0,1,0-16h64A8,8,0,0,1,168,152Zm-8-40H96a8,8,0,0,0,0,16h64a8,8,0,0,0,0-16Zm48-48V208a16,16,0,0,1-16,16H48a16,16,0,0,1-16-16V48A16,16,0,0,1,48,32H208A16,16,0,0,1,208,64Zm-16,0H48V208H208Z" />
                 </svg>
               }
-              title="Визуальный редактор"
-              description="Управляйте всем процессом генерации в удобном drag-and-drop редакторе."
+              title={t.visualEditor}
+              description={t.visualEditorDesc}
             />
           </div>
         </section>
 
         <section id="pricing" className="container py-24 sm:py-32">
           <div className="max-w-2xl mx-auto text-center mb-16">
-            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-headline">Простые и понятные тарифы</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-headline">{t.pricing}</h2>
             <p className="mt-4 text-lg text-muted-foreground">
-              Выберите план, который подходит именно вам. Начните бесплатно.
+              {t.pricingSub}
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <PricingCard
-                title="Free"
-                price="$0"
-                period="/ month"
-                features={["100 генераций", "Базовые модели", "Поддержка по email"]}
-                buttonText="Начать бесплатно"
+                title={t.free}
+                price={t.freePrice}
+                period={t.freePeriod}
+                features={t.freeFeatures}
+                buttonText={t.freeButton}
                 variant="default"
             />
             <PricingCard
-                title="Creator"
-                price="$15"
-                period="/ month"
-                features={["1000 генераций", "Продвинутые модели", "Приоритетная поддержка", "Доступ к новым функциям"]}
-                buttonText="Выбрать Creator"
+                title={t.creator}
+                price={t.creatorPrice}
+                period={t.creatorPeriod}
+                features={t.creatorFeatures}
+                buttonText={t.creatorButton}
                 variant="default"
                 isFeatured
             />
             <PricingCard
-                title="Pro Creator"
-                price="$40"
-                period="/ month"
-                features={["Безлимитные генерации", "Все модели, включая премиум", "Персональный менеджер", "API доступ"]}
-                buttonText="Выбрать Pro"
+                title={t.pro}
+                price={t.proPrice}
+                period={t.proPeriod}
+                features={t.proFeatures}
+                buttonText={t.proButton}
                 variant="default"
             />
           </div>
@@ -193,8 +314,8 @@ export default function Home() {
             </div>
             <div className="flex flex-col gap-4 items-center">
                  <div className="flex flex-col items-center gap-2">
-                    <Link href="#" className="hover:text-primary transition-colors">Политика конфиденциальности</Link>
-                    <Link href="#" className="hover:text-primary transition-colors">Белые листы</Link>
+                    <Link href="#" className="hover:text-primary transition-colors">{t.privacy}</Link>
+                    <Link href="#" className="hover:text-primary transition-colors">{t.whitepapers}</Link>
                 </div>
                 <div className="flex gap-4">
                     <Link href="#" className="text-muted-foreground hover:text-primary"><Github className="w-5 h-5" /></Link>
@@ -211,13 +332,13 @@ export default function Home() {
                 </div>
             </div>
             <div className="flex flex-col gap-4 items-center md:items-end text-center md:text-right">
-                <h4 className="font-semibold text-foreground">Связаться</h4>
+                <h4 className="font-semibold text-foreground">{t.contact}</h4>
                  <Link href="#" className="flex items-center gap-2 hover:text-primary transition-colors"><MessageCircle className="w-4 h-4"/>Whatsapp</Link>
                  <Link href="#" className="flex items-center gap-2 hover:text-primary transition-colors"><Send className="w-4 h-4" />Telegram</Link>
             </div>
         </div>
         <div className="container py-4 text-center text-xs text-muted-foreground/80 border-t">
-          © {new Date().getFullYear()} FlowForge AI. All rights reserved.
+          {t.copyright}
         </div>
       </footer>
     </div>
@@ -264,3 +385,30 @@ function PricingCard({ title, price, period, features, buttonText, variant, isFe
         </Card>
     )
 }
+
+function HelpModal({ t }: { t: any }) {
+    return (
+        <Dialog>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="icon">
+                    <HelpCircle className="h-5 w-5" />
+                    <span className="sr-only">Help</span>
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                    <DialogTitle>{t.helpTitle}</DialogTitle>
+                    <DialogDescription>{t.helpDesc1}</DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4 text-sm text-muted-foreground">
+                    <p>{t.helpStep1}</p>
+                    <p>{t.helpStep2}</p>
+                    <p>{t.helpStep3}</p>
+                    <p>{t.helpStep4}</p>
+                    <p>{t.helpStep5}</p>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
