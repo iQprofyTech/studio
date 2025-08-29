@@ -30,6 +30,7 @@ interface NodeProps {
     type: NodeType;
     prompt: string;
   };
+  selected: boolean;
 }
 
 const nodeInfo: Record<
@@ -43,81 +44,95 @@ const nodeInfo: Record<
   Upload: { icon: Upload, color: "text-purple-400" },
 };
 
-export function Node({ data }: NodeProps) {
+const nodeToolbarConfig: Record<NodeType, ("delete" | "aspect" | "model" | "settings")[]> = {
+    "Text": ["delete", "model", "settings"],
+    "Image": ["delete", "aspect", "model", "settings"],
+    "Video": ["delete", "aspect", "model", "settings"],
+    "Audio": ["delete", "model", "settings"],
+    "Upload": ["delete", "settings"],
+}
+
+export function Node({ data, selected }: NodeProps) {
   const { type, prompt } = data;
   const Icon = nodeInfo[type].icon;
   const color = nodeInfo[type].color;
+  const toolbarItems = nodeToolbarConfig[type];
 
   return (
     <div className="group">
        <Handle type="target" position={Position.Left} className="!bg-primary" />
-      <Card className="w-[380px] rounded-2xl shadow-2xl bg-background/50 backdrop-blur-xl border-2 border-white/10 dark:border-white/5 transition-all duration-300 hover:shadow-primary/20 hover:border-primary/20">
+      <Card className={`w-[380px] rounded-2xl shadow-2xl bg-background/50 backdrop-blur-xl border-2 transition-all duration-300 ${selected ? "border-primary/50 shadow-primary/20" : "border-white/10 dark:border-white/5"}`}>
         <div className="handle p-3 flex items-center justify-between border-b border-white/10 cursor-grab">
           <div className="flex items-center gap-2">
             <Icon className={`w-5 h-5 ${color}`} />
-            <h3 className="font-semibold">{type} Node</h3>
+            <h3 className="font-semibold">{type}</h3>
           </div>
-          <div className="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
-            <NodeToolbar />
+          <div className={`flex items-center gap-1 transition-opacity ${selected ? "opacity-100" : "opacity-0"}`}>
+            <NodeToolbar items={toolbarItems} />
           </div>
         </div>
-        <CardContent className="p-3 space-y-3">
-          <div className="aspect-video bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden">
-            {type === "Image" ? (
-              <Image
-                src="https://picsum.photos/380/214"
-                width={380}
-                height={214}
-                alt="Generated image"
-                className="w-full h-full object-cover"
-                data-ai-hint="abstract art"
-              />
-            ) : (
-               <div className="text-muted-foreground/50 text-sm">Preview</div>
-            )}
-          </div>
-          <Textarea
-            placeholder={`Enter your ${type.toLowerCase()} prompt here...`}
-            defaultValue={prompt}
-            className="bg-background/70 text-sm min-h-[80px]"
-          />
-           <Button className="w-full">
-            <Play className="w-4 h-4 mr-2" />
-            Generate
-          </Button>
-        </CardContent>
+        
+        {selected && (
+            <CardContent className="p-3 space-y-3">
+            <div className="aspect-video bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden">
+                {type === "Image" ? (
+                <Image
+                    src="https://picsum.photos/380/214"
+                    width={380}
+                    height={214}
+                    alt="Generated image"
+                    className="w-full h-full object-cover"
+                    data-ai-hint="abstract art"
+                />
+                ) : (
+                <div className="text-muted-foreground/50 text-sm">Preview</div>
+                )}
+            </div>
+            <Textarea
+                placeholder={`Enter your ${type.toLowerCase()} prompt here...`}
+                defaultValue={prompt}
+                className="bg-background/70 text-sm min-h-[80px]"
+            />
+            <Button className="w-full">
+                <Play className="w-4 h-4 mr-2" />
+                Generate
+            </Button>
+            </CardContent>
+        )}
+
       </Card>
       <Handle type="source" position={Position.Right} className="!bg-primary" />
     </div>
   );
 }
 
-function NodeToolbar() {
+const iconMap = {
+    delete: Trash2,
+    aspect: Ratio,
+    model: Bot,
+    settings: Settings
+};
+
+const tooltipMap = {
+    delete: "Delete Node",
+    aspect: "Aspect Ratio",
+    model: "Change Model",
+    settings: "Settings"
+};
+
+function NodeToolbar({ items }: { items: ("delete" | "aspect" | "model" | "settings")[] }) {
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                    <MoreVertical className="w-4 h-4" />
-                </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                    <Ratio className="mr-2 h-4 w-4" />
-                    <span>Aspect Ratio</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                    <Bot className="mr-2 h-4 w-4" />
-                    <span>Change Model</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                    <Settings className="mr-2 h-4 w-4" />
-                    <span>Settings</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive focus:text-destructive-foreground focus:bg-destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    <span>Delete Node</span>
-                </DropdownMenuItem>
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center">
+            {items.map(item => {
+                 const Icon = iconMap[item];
+                 const tooltip = tooltipMap[item];
+                 return (
+                    <Button key={item} variant="ghost" size="icon" className={`h-7 w-7 ${item === 'delete' ? 'text-destructive/80 hover:text-destructive hover:bg-destructive/10' : ''}`}>
+                        <Icon className="w-4 h-4" />
+                        <span className="sr-only">{tooltip}</span>
+                    </Button>
+                 )
+            })}
+        </div>
     );
 }
