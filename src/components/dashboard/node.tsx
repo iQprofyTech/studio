@@ -62,12 +62,12 @@ export function Node({ data, selected }: NodeProps) {
     <div className="group">
        <Handle type="target" position={Position.Left} className="!bg-primary" />
       <Card className={`w-[380px] rounded-2xl shadow-2xl bg-background/50 backdrop-blur-xl border-2 transition-all duration-300 ${selected ? "border-primary/50 shadow-primary/20" : "border-white/10 dark:border-white/5"}`}>
-        <div className="handle p-3 flex items-center justify-between border-b border-white/10 cursor-grab">
+        <div className={`handle p-3 flex items-center justify-between cursor-grab ${selected ? 'border-b border-white/10' : ''}`}>
           <div className="flex items-center gap-2">
             <Icon className={`w-5 h-5 ${color}`} />
             <h3 className="font-semibold">{type}</h3>
           </div>
-          <div className={`flex items-center gap-1 transition-opacity ${selected ? "opacity-100" : "opacity-0"}`}>
+          <div className={`flex items-center gap-1 transition-opacity ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
             <NodeToolbar items={toolbarItems} />
           </div>
         </div>
