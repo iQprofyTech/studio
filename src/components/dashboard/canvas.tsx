@@ -1,23 +1,25 @@
+
 "use client";
 
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState }
+from "react";
 import ReactFlow, {
   addEdge,
   applyEdgeChanges,
   applyNodeChanges,
-  MiniMap,
-  Controls,
   Background,
-  type Node,
+  Controls,
+  MiniMap,
   type Edge,
-  type OnNodesChange,
-  type OnEdgesChange,
   type OnConnect,
+  type OnEdgesChange,
+  type OnNodesChange,
+  type Node,
 } from "reactflow";
 import "reactflow/dist/style.css";
 
-import { Node as CustomNode } from "./node";
 import { AddNodeToolbar } from "./add-node-toolbar";
+import { Node as CustomNode } from "./node";
 
 export type NodeType = "Text" | "Image" | "Video" | "Audio" | "Upload";
 
@@ -30,9 +32,11 @@ export interface NodeData {
   model: string;
   output?: string | null; // Can be text, or data URI for image/video/audio
   onDelete: (id: string) => void;
-  onUpdate: (id: string, data: Partial<Omit<NodeData, 'id' | 'onDelete' | 'onUpdate'>>) => void;
+  onUpdate: (
+    id: string,
+    data: Partial<Omit<NodeData, "id" | "onDelete" | "onUpdate">>
+  ) => void;
 }
-
 
 const initialNodes: Node[] = [
   {
@@ -82,18 +86,26 @@ export function Canvas() {
     [setEdges]
   );
 
-  const deleteNode = useCallback((id: string) => {
-    setNodes((nds) => nds.filter((node) => node.id !== id));
-    setEdges((eds) => eds.filter((edge) => edge.source !== id && edge.target !== id));
-  }, [setNodes, setEdges]);
-  
-  const updateNodeData = useCallback((id: string, data: Partial<NodeData>) => {
+  const deleteNode = useCallback(
+    (id: string) => {
+      setNodes((nds) => nds.filter((node) => node.id !== id));
+      setEdges((eds) =>
+        eds.filter((edge) => edge.source !== id && edge.target !== id)
+      );
+    },
+    [setNodes, setEdges]
+  );
+
+  const updateNodeData = useCallback(
+    (id: string, data: Partial<NodeData>) => {
       setNodes((nds) =>
         nds.map((node) =>
           node.id === id ? { ...node, data: { ...node.data, ...data } } : node
         )
       );
-  }, [setNodes]);
+    },
+    [setNodes]
+  );
 
   const addNode = (type: NodeType) => {
     let defaultModel = "Default";
@@ -118,16 +130,20 @@ export function Canvas() {
     };
     setNodes((prev) => [...prev, newNode]);
   };
-  
-  const nodesWithCallbacks = nodes.map((node) => ({
-    ...node,
-    data: {
-      ...node.data,
-      id: node.id,
-      onDelete: deleteNode,
-      onUpdate: updateNodeData,
-    },
-  }));
+
+  const nodesWithCallbacks = React.useMemo(
+    () =>
+      nodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          id: node.id,
+          onDelete: deleteNode,
+          onUpdate: updateNodeData,
+        },
+      })),
+    [nodes, deleteNode, updateNodeData]
+  );
 
   return (
     <div className="relative w-full h-[calc(100vh-3.5rem)] overflow-hidden">
@@ -141,10 +157,10 @@ export function Canvas() {
         fitView
       >
         <Background gap={40} />
-         <MiniMap className="!bg-background" zoomable pannable />
-        <Controls className="[&_button]:!bg-background [&_button]:!border-border [&_button:hover]:!bg-muted" />
+        <Controls className="!bottom-12 !left-auto !right-4 !top-auto !-translate-x-0 !-translate-y-0 !transform-none" />
+        <MiniMap className="!bottom-20 !left-auto !right-4 !top-auto !h-24 !-translate-x-0 !-translate-y-0 !transform-none !bg-background" zoomable pannable />
       </ReactFlow>
-      
+
       <AddNodeToolbar onAddNode={addNode} />
     </div>
   );
