@@ -87,14 +87,17 @@ export function Node({ id, data, selected }: NodeProps) {
       const inputNode = inputEdge ? nodes.find(node => node.id === inputEdge.source) : null;
       const inputNodeData = inputNode?.data as NodeData | undefined;
       
+      const generationPrompt = inputNodeData?.type === 'Text' && inputNodeData.output ? inputNodeData.output : prompt;
+
+      if (!generationPrompt && type !== 'Video' && inputNodeData?.type !== 'Image') {
+         throw new Error(`Prompt cannot be empty for ${type} generation.`);
+      }
+
       if (type === 'Text') {
-        const response = await generateTextFromText({ prompt });
+        const response = await generateTextFromText({ prompt: generationPrompt });
         result = response.generatedText;
       } else if (type === 'Image') {
-         if (!prompt) {
-            throw new Error("Prompt cannot be empty for image generation.");
-        }
-        const response = await generateImageFromText({ prompt });
+        const response = await generateImageFromText({ prompt: generationPrompt });
         result = response.imageDataUri;
       } else if (type === 'Video') {
          toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
@@ -102,18 +105,12 @@ export function Node({ id, data, selected }: NodeProps) {
          if (inputNodeData?.type === 'Image' && inputNodeData?.output) {
             response = await generateVideoFromImage({ prompt, photoDataUri: inputNodeData.output });
          } else {
-            if (!prompt) {
-                throw new Error("Prompt cannot be empty for video generation.");
-            }
-            response = await generateVideoFromText({ prompt });
+            response = await generateVideoFromText({ prompt: generationPrompt });
          }
         result = response.videoDataUri;
         toast({ title: "✅ Video generation complete!", description: "The preview will be updated shortly." });
       } else if (type === 'Audio') {
-         if (!prompt) {
-            throw new Error("Prompt cannot be empty for audio generation.");
-        }
-        const response = await generateAudioFromText({ prompt });
+        const response = await generateAudioFromText({ prompt: generationPrompt });
         result = response.audioDataUri;
       }
       if (result) {
