@@ -107,9 +107,9 @@ export function Canvas() {
         nodeTypes={nodeTypes}
         fitView
       >
-        <Controls />
-        <MiniMap />
         <Background gap={40} />
+         <MiniMap className="!bg-background" zoomable pannable />
+        <Controls className="[&_button]:!bg-background [&_button]:!border-border [&_button:hover]:!bg-muted" />
       </ReactFlow>
       
       <AddNodeToolbar onAddNode={addNode} />
