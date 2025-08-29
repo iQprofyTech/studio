@@ -98,12 +98,12 @@ export function Canvas() {
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    []
+    [setNodes]
   );
 
   const onEdgesChange: OnEdgesChange = useCallback(
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    []
+    [setEdges]
   );
 
   const onConnect: OnConnect = useCallback(
@@ -118,7 +118,7 @@ export function Canvas() {
       };
       setEdges((eds) => addEdge(newEdge, eds));
     },
-    [nodes]
+    [nodes, setEdges]
   );
 
   const deleteNode = useCallback(
@@ -128,18 +128,18 @@ export function Canvas() {
         eds.filter((edge) => edge.source !== id && edge.target !== id)
       );
     },
-    []
+    [setNodes, setEdges]
   );
 
   const updateNodeData = useCallback(
-    (id: string, data: Partial<NodeData>) => {
+    (id: string, data: Partial<Omit<NodeData, 'id' | 'onDelete' | 'onUpdate'>>) => {
       setNodes((nds) =>
         nds.map((node) =>
           node.id === id ? { ...node, data: { ...node.data, ...data } } : node
         )
       );
     },
-    []
+    [setNodes]
   );
 
   const addNode = (type: NodeType) => {
