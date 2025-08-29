@@ -28,44 +28,52 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 
 const translations = {
   ru: {
     launchApp: "Launch App",
-    headline: "Каскадная генерация контента с помощью AI",
-    subheadline: "Создавайте уникальные изображения, видео, текст и аудио с помощью нашего интуитивного нодового редактора.",
+    headline: "Каскадная генерация контента при помощи AI",
+    subheadline: "Создавайте уникальные изображения, видео, текст и аудио с помощью нашего интуитивного редактора.",
     startCreating: "Начать творить",
     learnMore: "Узнать больше",
     allTools: "Все инструменты в одном месте",
     allToolsSub: "Объединяйте различные AI-модели в единый рабочий процесс для достижения невероятных результатов.",
     imgGen: "Генерация изображений",
-    imgGenDesc: "Создавайте фотореалистичные изображения и арты из текстовых описаний с помощью передовых моделей.",
+    imgGenDesc: "Создавайте фотореалистичные изображения и арты из текстовых описаний промтов.",
     videoGen: "Генерация видео",
     videoGenDesc: "Превращайте текст или изображения в короткие видеоролики, задавая стиль и динамику.",
     textGen: "Генерация текстов",
-    textGenDesc: "Пишите статьи, посты, сценарии и многое другое, используя мощные языковые модели.",
+    textGenDesc: "Пишите статьи, посты, сценарии. Вдохновляйтесь.",
     audioGen: "Генерация аудио",
     audioGenDesc: "Синтезируйте речь, создавайте музыку и звуковые эффекты для ваших проектов.",
     cascade: "Каскадные цепочки",
-    cascadeDesc: "Соединяйте ноды, чтобы результат одной генерации стал основой для следующей.",
+    cascadeDesc: "Соединяйте узлы (ноды), чтобы результат одной генерации стал основой для следующей.",
     visualEditor: "Визуальный редактор",
-    visualEditorDesc: "Управляйте всем процессом генерации в удобном drag-and-drop редакторе.",
+    visualEditorDesc: "Управляйте всем процессом творчества в удобном drag-and-drop редакторе.",
     pricing: "Простые и понятные тарифы",
     pricingSub: "Выберите план, который подходит именно вам. Начните бесплатно.",
+    monthly: "Месяц",
+    yearly: "Год",
+    yearlyDiscount: "Скидка 15%",
     free: "Free",
-    freePrice: "$0",
-    freePeriod: "/ month",
-    freeFeatures: ["100 генераций", "Базовые модели", "Поддержка по email"],
+    freePrice: 0,
+    freePeriod: "/ месяц",
+    freeYearlyPeriod: "/ год",
+    freeFeatures: ["90 генераций", "Базовые модели", "Базовые функции", "Поддержка"],
     freeButton: "Начать бесплатно",
     creator: "Creator",
-    creatorPrice: "$15",
-    creatorPeriod: "/ month",
-    creatorFeatures: ["1000 генераций", "Продвинутые модели", "Приоритетная поддержка", "Доступ к новым функциям"],
+    creatorPrice: 20,
+    creatorPeriod: "/ месяц",
+    creatorYearlyPeriod: "/ год",
+    creatorFeatures: ["900 генераций", "Продвинутые модели", "Доступ к функциям Creator", "Поддержка"],
     creatorButton: "Выбрать Creator",
     pro: "Pro Creator",
-    proPrice: "$40",
-    proPeriod: "/ month",
-    proFeatures: ["Безлимитные генерации", "Все модели, включая премиум", "Персональный менеджер", "API доступ"],
+    proPrice: 50,
+    proPeriod: "/ месяц",
+    proYearlyPeriod: "/ год",
+    proFeatures: ["Безлимитные генерации", "Все модели, включая премиум", "Доступ ко всем функциям", "Поддержка"],
     proButton: "Выбрать Pro",
     contact: "Связаться",
     privacy: "Политика конфиденциальности",
@@ -103,19 +111,25 @@ const translations = {
     visualEditorDesc: "Manage the entire generation process in a convenient drag-and-drop editor.",
     pricing: "Simple and Clear Pricing",
     pricingSub: "Choose the plan that's right for you. Start for free.",
+    monthly: "Monthly",
+    yearly: "Yearly",
+    yearlyDiscount: "15% off",
     free: "Free",
-    freePrice: "$0",
+    freePrice: 0,
     freePeriod: "/ month",
+    freeYearlyPeriod: "/ year",
     freeFeatures: ["100 generations", "Basic models", "Email support"],
     freeButton: "Start for free",
     creator: "Creator",
-    creatorPrice: "$15",
+    creatorPrice: 15,
     creatorPeriod: "/ month",
+    creatorYearlyPeriod: "/ year",
     creatorFeatures: ["1000 generations", "Advanced models", "Priority support", "Access to new features"],
     creatorButton: "Choose Creator",
     pro: "Pro Creator",
-    proPrice: "$40",
+    proPrice: 40,
     proPeriod: "/ month",
+    proYearlyPeriod: "/ year",
     proFeatures: ["Unlimited generations", "All models, including premium", "Personal manager", "API access"],
     proButton: "Choose Pro",
     contact: "Contact",
@@ -137,6 +151,7 @@ const translations = {
 
 export default function Home() {
   const [lang, setLang] = useState<'ru' | 'en'>('ru');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
   const t = translations[lang];
 
   return (
@@ -282,37 +297,53 @@ export default function Home() {
         </section>
 
         <section id="pricing" className="container py-24 sm:py-32">
-          <div className="max-w-2xl mx-auto text-center mb-16">
+          <div className="max-w-2xl mx-auto text-center mb-8">
             <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-headline">{t.pricing}</h2>
             <p className="mt-4 text-lg text-muted-foreground">
               {t.pricingSub}
             </p>
           </div>
+           <div className="flex justify-center items-center gap-4 mb-16">
+              <Label htmlFor="billing-cycle" className={billingCycle === 'monthly' ? 'text-primary' : 'text-muted-foreground'}>{t.monthly}</Label>
+              <Switch 
+                id="billing-cycle" 
+                checked={billingCycle === 'yearly'}
+                onCheckedChange={(checked) => setBillingCycle(checked ? 'yearly' : 'monthly')}
+              />
+              <Label htmlFor="billing-cycle" className={billingCycle === 'yearly' ? 'text-primary' : 'text-muted-foreground'}>{t.yearly}</Label>
+              <div className="text-xs font-bold text-green-500 bg-green-100 dark:bg-green-900/50 dark:text-green-400 px-2 py-1 rounded-full">{t.yearlyDiscount}</div>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <PricingCard
+                t={t}
                 title={t.free}
                 price={t.freePrice}
-                period={t.freePeriod}
+                period={billingCycle === 'monthly' ? t.freePeriod : t.freeYearlyPeriod}
                 features={t.freeFeatures}
                 buttonText={t.freeButton}
                 variant="default"
+                billingCycle={billingCycle}
             />
             <PricingCard
+                t={t}
                 title={t.creator}
                 price={t.creatorPrice}
-                period={t.creatorPeriod}
+                period={billingCycle === 'monthly' ? t.creatorPeriod : t.creatorYearlyPeriod}
                 features={t.creatorFeatures}
                 buttonText={t.creatorButton}
                 variant="default"
                 isFeatured
+                billingCycle={billingCycle}
             />
             <PricingCard
+                t={t}
                 title={t.pro}
                 price={t.proPrice}
-                period={t.proPeriod}
+                period={billingCycle === 'monthly' ? t.proPeriod : t.proYearlyPeriod}
                 features={t.proFeatures}
                 buttonText={t.proButton}
                 variant="default"
+                billingCycle={billingCycle}
             />
           </div>
         </section>
@@ -376,13 +407,18 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode, titl
   );
 }
 
-function PricingCard({ title, price, period, features, buttonText, variant, isFeatured }: { title: string, price: string, period: string, features: string[], buttonText: string, variant: "default" | "outline", isFeatured?: boolean }) {
+function PricingCard({ t, title, price, period, features, buttonText, variant, isFeatured, billingCycle }: { t: any, title: string, price: number, period: string, features: string[], buttonText: string, variant: "default" | "outline", isFeatured?: boolean, billingCycle: 'monthly' | 'yearly' }) {
+    const yearlyDiscount = 0.85; // 15% discount
+    const calculatedPrice = billingCycle === 'yearly' ? price * 12 * yearlyDiscount : price;
+    
+    const displayPrice = price === 0 ? 0 : Math.round(calculatedPrice);
+
     return (
         <Card className={isFeatured ? "border-primary shadow-primary/20 shadow-lg" : ""}>
             <CardHeader className="p-6">
                 <CardTitle className="text-2xl font-bold">{title}</CardTitle>
                 <div className="flex items-baseline gap-2">
-                   <span className="text-4xl font-extrabold">{price}</span>
+                   <span className="text-4xl font-extrabold">${displayPrice}</span>
                    <span className="text-muted-foreground">{period}</span>
                 </div>
             </CardHeader>
@@ -426,7 +462,5 @@ function HelpModal({ t }: { t: any }) {
         </Dialog>
     );
 }
-
-
 
     
