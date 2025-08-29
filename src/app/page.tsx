@@ -19,12 +19,14 @@ import {
   Send,
   MessageCircle,
   HelpCircle,
+  Globe,
 } from "lucide-react";
 import Link from "next/link";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import Image from "next/image";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useState } from "react";
 
 const translations = {
@@ -76,6 +78,8 @@ const translations = {
     helpStep3: "3. Соединяйте ноды: Перетащите линию от правой точки одной ноды к левой точке другой, чтобы создать каскад. Результат первой ноды будет использован как входные данные для второй.",
     helpStep4: "4. Генерируйте: Нажмите кнопку 'Generate' на ноде, чтобы запустить процесс. Дождитесь результата в окне предпросмотра.",
     helpStep5: "5. Управляйте результатом: Вы можете скопировать текст или скачать медиафайлы, а также очистить вывод для повторной генерации.",
+    russian: "Русский",
+    english: "English",
   },
   en: {
     launchApp: "Launch App",
@@ -125,6 +129,8 @@ const translations = {
     helpStep3: "3. Connect Nodes: Drag a line from the right handle of one node to the left handle of another to create a cascade. The result of the first node will be used as input for the second.",
     helpStep4: "4. Generate: Press the 'Generate' button on a node to start the process. Wait for the result in the preview window.",
     helpStep5: "5. Manage Output: You can copy text or download media files, and clear the output to generate again.",
+    russian: "Русский",
+    english: "English",
   }
 };
 
@@ -132,10 +138,6 @@ const translations = {
 export default function Home() {
   const [lang, setLang] = useState<'ru' | 'en'>('ru');
   const t = translations[lang];
-
-  const toggleLang = () => {
-    setLang(prevLang => prevLang === 'ru' ? 'en' : 'ru');
-  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background font-body">
@@ -151,9 +153,22 @@ export default function Home() {
             <Button asChild>
               <Link href="/dashboard">{t.launchApp}</Link>
             </Button>
-            <Button variant="outline" size="sm" onClick={toggleLang} className="w-20">
-              {lang === 'ru' ? 'EN' : 'RU'}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Globe className="h-5 w-5" />
+                  <span className="sr-only">Change Language</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setLang('ru')}>
+                  {t.russian}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLang('en')}>
+                  {t.english}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
@@ -412,3 +427,6 @@ function HelpModal({ t }: { t: any }) {
     );
 }
 
+
+
+    
