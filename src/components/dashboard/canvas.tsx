@@ -128,7 +128,7 @@ export function Canvas() {
         eds.filter((edge) => edge.source !== id && edge.target !== id)
       );
     },
-    [] // No dependencies, this function is stable
+    [] 
   );
 
   const updateNodeData = useCallback(
@@ -139,40 +139,41 @@ export function Canvas() {
         )
       );
     },
-    [] // No dependencies, this function is stable
+    []
   );
 
-  const addNode = (type: NodeType) => {
-    let defaultModel = "Default";
-    if (type === "Text") defaultModel = "Gemini 1.5 Pro";
-    if (type === "Image") defaultModel = "Imagen 4";
-    if (type === "Video") defaultModel = "Veo 3";
-    if (type === "Audio") defaultModel = "TTS-1";
+ const addNode = useCallback(
+    (type: NodeType) => {
+      let defaultModel = 'Default';
+      if (type === 'Text') defaultModel = 'Gemini 1.5 Pro';
+      if (type === 'Image') defaultModel = 'Imagen 4';
+      if (type === 'Video') defaultModel = 'Veo 3';
+      if (type === 'Audio') defaultModel = 'TTS-1';
 
-    const newNodeId = `${Date.now()}`;
-    const newNode: Node<NodeData> = {
-      id: newNodeId,
-      type: "custom",
-      position: {
-        x: window.innerWidth / 2 - 190,
-        y: window.innerHeight / 3 - 150,
-      },
-      data: {
+      const newNodeId = `${Date.now()}`;
+      const newNode: Node<Omit<NodeData, 'nodes' | 'edges'>> = {
         id: newNodeId,
-        type,
-        prompt: "",
-        aspectRatio: "1:1",
-        model: defaultModel,
-        output: null,
-        isGenerating: false,
-        onDelete: deleteNode,
-        onUpdate: updateNodeData,
-        nodes: nodes,
-        edges: edges,
-      },
-    };
-    setNodes((prev) => [...prev, newNode]);
-  };
+        type: 'custom',
+        position: {
+          x: window.innerWidth / 2 - 190,
+          y: window.innerHeight / 3 - 150,
+        },
+        data: {
+          id: newNodeId,
+          type,
+          prompt: '',
+          aspectRatio: '1:1',
+          model: defaultModel,
+          output: null,
+          isGenerating: false,
+          onDelete: deleteNode,
+          onUpdate: updateNodeData,
+        },
+      };
+      setNodes((prevNodes) => [...prevNodes, newNode as Node<NodeData>]);
+    },
+    [deleteNode, updateNodeData]
+  );
 
   const nodesWithCallbacks = useMemo(
     () =>
