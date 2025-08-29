@@ -6,6 +6,8 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -22,14 +24,12 @@ import {
   MoreVertical,
 } from "lucide-react";
 import Image from "next/image";
-import type { NodeType } from "./canvas";
+import type { NodeData, NodeType } from "./canvas";
 import { Handle, Position } from "reactflow";
 
 interface NodeProps {
-  data: {
-    type: NodeType;
-    prompt: string;
-  };
+  id: string;
+  data: NodeData;
   selected: boolean;
 }
 
@@ -52,8 +52,8 @@ const nodeToolbarConfig: Record<NodeType, ("delete" | "aspect" | "model" | "sett
     "Upload": ["delete", "settings"],
 }
 
-export function Node({ data, selected }: NodeProps) {
-  const { type, prompt } = data;
+export function Node({ id, data, selected }: NodeProps) {
+  const { type, prompt, aspectRatio, model, onDelete, onUpdate } = data;
   const Icon = nodeInfo[type].icon;
   const color = nodeInfo[type].color;
   const toolbarItems = nodeToolbarConfig[type];
@@ -68,7 +68,13 @@ export function Node({ data, selected }: NodeProps) {
             <h3 className="font-semibold">{type}</h3>
           </div>
           <div className={`flex items-center gap-1 transition-opacity ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
-            <NodeToolbar items={toolbarItems} />
+            <NodeToolbar 
+              nodeId={id} 
+              items={toolbarItems} 
+              onDelete={onDelete} 
+              onUpdate={onUpdate}
+              type={type}
+            />
           </div>
         </div>
         
@@ -76,7 +82,7 @@ export function Node({ data, selected }: NodeProps) {
           <div className="aspect-video bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden">
               {type === "Image" ? (
               <Image
-                  src="https://picsum.photos/380/214"
+                  src={`https://picsum.photos/380/214?${id}`} // Add id to vary image
                   width={380}
                   height={214}
                   alt="Generated image"
@@ -92,6 +98,7 @@ export function Node({ data, selected }: NodeProps) {
               <Textarea
                   placeholder={`Enter your ${type.toLowerCase()} prompt here...`}
                   defaultValue={prompt}
+                  onChange={(e) => onUpdate(id, { prompt: e.target.value })}
                   className="bg-background/70 text-sm min-h-[80px]"
               />
               <Button className="w-full">
@@ -122,19 +129,104 @@ const tooltipMap = {
     settings: "Settings"
 };
 
-function NodeToolbar({ items }: { items: ("delete" | "aspect" | "model" | "settings")[] }) {
-    return (
-        <div className="flex items-center">
-            {items.map(item => {
-                 const Icon = iconMap[item];
-                 const tooltip = tooltipMap[item];
-                 return (
-                    <Button key={item} variant="ghost" size="icon" className={`h-7 w-7 ${item === 'delete' ? 'text-destructive/80 hover:text-destructive hover:bg-destructive/10' : ''}`}>
+const modelOptions: Record<NodeType, string[]> = {
+    Text: ["Gemini 1.5 Pro", "GPT-4o", "Llama 3"],
+    Image: ["Stable Diffusion 3", "DALL-E 3", "Imagen 3"],
+    Video: ["Sora", "Veo", "Kling"],
+    Audio: ["MusicGen", "TTS-1", "ElevenLabs"],
+    Upload: [],
+}
+
+const aspectRatios = ["16:9", "1:1", "4:3", "9:16"];
+
+
+function NodeToolbar({
+  nodeId,
+  items,
+  onDelete,
+  onUpdate,
+  type,
+}: {
+  nodeId: string;
+  items: ("delete" | "aspect" | "model" | "settings")[];
+  onDelete: (id: string) => void;
+  onUpdate: (id: string, data: Partial<NodeData>) => void;
+  type: NodeType;
+}) {
+  const renderToolbarItem = (item: typeof items[number]) => {
+    const Icon = iconMap[item];
+    const tooltip = tooltipMap[item];
+
+    if (item === "delete") {
+      return (
+        <Button
+          key={item}
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-destructive/80 hover:text-destructive hover:bg-destructive/10"
+          onClick={() => onDelete(nodeId)}
+        >
+          <Icon className="w-4 h-4" />
+          <span className="sr-only">{tooltip}</span>
+        </Button>
+      );
+    }
+    
+    if (item === 'model') {
+        return (
+            <DropdownMenu key={item}>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7">
                         <Icon className="w-4 h-4" />
                         <span className="sr-only">{tooltip}</span>
                     </Button>
-                 )
-            })}
-        </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Select Model</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {modelOptions[type].map(model => (
+                        <DropdownMenuItem key={model} onSelect={() => onUpdate(nodeId, { model })}>
+                            {model}
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        )
+    }
+
+    if (item === 'aspect') {
+        return (
+            <DropdownMenu key={item}>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7">
+                        <Icon className="w-4 h-4" />
+                        <span className="sr-only">{tooltip}</span>
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                     <DropdownMenuLabel>Aspect Ratio</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {aspectRatios.map(ratio => (
+                        <DropdownMenuItem key={ratio} onSelect={() => onUpdate(nodeId, { aspectRatio: ratio })}>
+                           {ratio}
+                        </DropdownMenuItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        )
+    }
+
+    return (
+      <Button key={item} variant="ghost" size="icon" className="h-7 w-7">
+        <Icon className="w-4 h-4" />
+        <span className="sr-only">{tooltip}</span>
+      </Button>
     );
+  };
+  
+  return (
+    <div className="flex items-center">
+      {items.map(renderToolbarItem)}
+    </div>
+  );
 }

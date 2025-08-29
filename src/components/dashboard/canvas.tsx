@@ -28,6 +28,8 @@ export interface NodeData {
   prompt: string;
   aspectRatio: string;
   model: string;
+  onDelete: (id: string) => void;
+  onUpdate: (id: string, data: Partial<NodeData>) => void;
 }
 
 const initialNodes: Node[] = [
@@ -39,7 +41,7 @@ const initialNodes: Node[] = [
       type: "Image",
       prompt: "A beautiful landscape painting, digital art, high resolution",
       aspectRatio: "16:9",
-      model: "Stable Diffusion",
+      model: "DALL-E 3",
     },
   },
   {
@@ -78,13 +80,26 @@ export function Canvas() {
     [setEdges]
   );
 
+  const deleteNode = useCallback((id: string) => {
+    setNodes((nds) => nds.filter((node) => node.id !== id));
+    setEdges((eds) => eds.filter((edge) => edge.source !== id && edge.target !== id));
+  }, [setNodes, setEdges]);
+  
+  const updateNodeData = useCallback((id: string, data: Partial<NodeData>) => {
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === id ? { ...node, data: { ...node.data, ...data } } : node
+        )
+      );
+  }, [setNodes]);
+
   const addNode = (type: NodeType) => {
     const newNode: Node = {
       id: `${Date.now()}`,
       type: "custom",
       position: {
         x: window.innerWidth / 2 - 190,
-        y: window.innerHeight / 3,
+        y: window.innerHeight / 3 - 150,
       },
       data: {
         type,
@@ -95,11 +110,20 @@ export function Canvas() {
     };
     setNodes((prev) => [...prev, newNode]);
   };
+  
+  const nodesWithCallbacks = nodes.map((node) => ({
+    ...node,
+    data: {
+      ...node.data,
+      onDelete: deleteNode,
+      onUpdate: updateNodeData,
+    },
+  }));
 
   return (
     <div className="relative w-full h-[calc(100vh-3.5rem)] overflow-hidden">
       <ReactFlow
-        nodes={nodes}
+        nodes={nodesWithCallbacks}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
