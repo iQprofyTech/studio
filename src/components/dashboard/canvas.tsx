@@ -42,8 +42,8 @@ const initialNodes: Node[] = [
     data: {
       type: "Image",
       prompt: "A beautiful landscape painting, digital art, high resolution",
-      aspectRatio: "16:9",
-      model: "Imagen 3",
+      aspectRatio: "1:1",
+      model: "Imagen 4",
     },
   },
   {
@@ -98,8 +98,8 @@ export function Canvas() {
   const addNode = (type: NodeType) => {
     let defaultModel = "Default";
     if (type === "Text") defaultModel = "Gemini 1.5 Pro";
-    if (type === "Image") defaultModel = "Imagen 3";
-    if (type === "Video") defaultModel = "Veo";
+    if (type === "Image") defaultModel = "Imagen 4";
+    if (type === "Video") defaultModel = "Veo 3";
     if (type === "Audio") defaultModel = "TTS-1";
 
     const newNode: Node = {

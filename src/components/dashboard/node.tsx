@@ -177,7 +177,7 @@ export function Node({ id, data, selected }: NodeProps) {
               )}
               {output ? (
                 <>
-                  {type === "Image" && <Image src={output} alt="Generated image" layout="fill" objectFit="cover" />}
+                  {type === "Image" && <Image src={output} alt="Generated image" fill objectFit="cover" />}
                   {type === "Video" && <video src={output} controls className="w-full h-full object-cover" />}
                   {type === "Audio" && <div className="p-4 w-full"><audio src={output} controls className="w-full" /></div>}
                   {type === 'Text' && <div className="p-4 text-sm overflow-y-auto max-h-60 w-full text-left"><p>{output}</p></div>}
@@ -235,10 +235,10 @@ const tooltipMap = {
 };
 
 const modelOptions: Record<NodeType, string[]> = {
-    Text: ["Gemini 1.5 Pro", "GPT-4o", "Llama 3"],
-    Image: ["Imagen 3", "Stable Diffusion 3", "DALL-E 3"],
-    Video: ["Veo", "Sora", "Kling"],
-    Audio: ["TTS-1", "MusicGen", "ElevenLabs"],
+    Text: ["Gemini 1.5 Pro", "Gemini 1.5 Flash"],
+    Image: ["Imagen 4"],
+    Video: ["Veo 3", "Veo 2"],
+    Audio: ["TTS-1"],
     Upload: [],
 }
 
