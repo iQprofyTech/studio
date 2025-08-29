@@ -67,13 +67,15 @@ export function Node({ id, data, selected }: NodeProps) {
             <Icon className={`w-5 h-5 ${color}`} />
             <h3 className="font-semibold">{type}</h3>
           </div>
-          <div className={`flex items-center gap-1 transition-opacity ${selected ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+          <div className="flex items-center gap-1 opacity-100">
             <NodeToolbar 
               nodeId={id} 
               items={toolbarItems} 
               onDelete={onDelete} 
               onUpdate={onUpdate}
               type={type}
+              model={model}
+              aspectRatio={aspectRatio}
             />
           </div>
         </div>
@@ -146,12 +148,16 @@ function NodeToolbar({
   onDelete,
   onUpdate,
   type,
+  model,
+  aspectRatio
 }: {
   nodeId: string;
   items: ("delete" | "aspect" | "model" | "settings")[];
   onDelete: (id: string) => void;
   onUpdate: (id: string, data: Partial<NodeData>) => void;
   type: NodeType;
+  model: string;
+  aspectRatio: string;
 }) {
   const renderToolbarItem = (item: typeof items[number]) => {
     const Icon = iconMap[item];
@@ -176,17 +182,17 @@ function NodeToolbar({
         return (
             <DropdownMenu key={item}>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7">
-                        <Icon className="w-4 h-4" />
-                        <span className="sr-only">{tooltip}</span>
+                     <Button variant="ghost" className="h-7 px-2 text-xs">
+                        <Icon className="w-3 h-3 mr-1" />
+                        {model}
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Select Model</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    {modelOptions[type].map(model => (
-                        <DropdownMenuItem key={model} onSelect={() => onUpdate(nodeId, { model })}>
-                            {model}
+                    {modelOptions[type].map(modelOption => (
+                        <DropdownMenuItem key={modelOption} onSelect={() => onUpdate(nodeId, { model: modelOption })}>
+                            {modelOption}
                         </DropdownMenuItem>
                     ))}
                 </DropdownMenuContent>
@@ -198,9 +204,9 @@ function NodeToolbar({
         return (
             <DropdownMenu key={item}>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7">
-                        <Icon className="w-4 h-4" />
-                        <span className="sr-only">{tooltip}</span>
+                    <Button variant="ghost" className="h-7 px-2 text-xs">
+                        <Icon className="w-3 h-3 mr-1" />
+                        {aspectRatio}
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -225,7 +231,7 @@ function NodeToolbar({
   };
   
   return (
-    <div className="flex items-center">
+    <div className="flex items-center gap-1">
       {items.map(renderToolbarItem)}
     </div>
   );
