@@ -35,6 +35,7 @@ import { generateTextFromText } from "@/ai/flows/generate-text-from-text";
 import { generateImageFromText } from "@/ai/flows/generate-image-from-text";
 import { generateVideoFromText } from "@/ai/flows/generate-video-from-text";
 import { generateAudioFromText } from "@/ai/flows/generate-audio-from-text";
+import { generateVideoFromImage } from "@/ai/flows/generate-video-from-image";
 import { useToast } from "@/hooks/use-toast";
 
 interface NodeProps {
@@ -79,7 +80,7 @@ const mimeTypes: Record<NodeType, string> = {
 }
 
 export function Node({ id, data, selected }: NodeProps) {
-  const { type, prompt, aspectRatio, model, onDelete, onUpdate, output } = data;
+  const { type, prompt, aspectRatio, model, onDelete, onUpdate, output, nodes, edges } = data;
   const Icon = nodeInfo[type].icon;
   const color = nodeInfo[type].color;
   const toolbarItems = nodeToolbarConfig[type];
@@ -92,6 +93,12 @@ export function Node({ id, data, selected }: NodeProps) {
     onUpdate(id, { output: null }); // Clear previous output
     try {
       let result;
+
+      // Find the input node if any
+      const inputEdge = edges.find(edge => edge.target === id);
+      const inputNode = inputEdge ? nodes.find(node => node.id === inputEdge.source) : null;
+      const inputNodeData = inputNode?.data;
+      
       if (type === 'Text') {
         const response = await generateTextFromText({ prompt });
         result = response.generatedText;
@@ -100,10 +107,18 @@ export function Node({ id, data, selected }: NodeProps) {
         result = response.imageDataUri;
       } else if (type === 'Video') {
          toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
-        const response = await generateVideoFromText({ prompt });
+         let response;
+         if (inputNodeData?.type === 'Image' && inputNodeData?.output) {
+            response = await generateVideoFromImage({ prompt, photoDataUri: inputNodeData.output });
+         } else {
+            response = await generateVideoFromText({ prompt });
+         }
         result = response.videoDataUri;
         toast({ title: "✅ Video generation complete!", description: "The preview will be updated shortly." });
       } else if (type === 'Audio') {
+         if (!prompt) {
+            throw new Error("Prompt cannot be empty for audio generation.");
+        }
         const response = await generateAudioFromText({ prompt });
         result = response.audioDataUri;
       }
@@ -120,7 +135,7 @@ export function Node({ id, data, selected }: NodeProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [type, prompt, id, onUpdate, toast]);
+  }, [type, prompt, id, onUpdate, toast, nodes, edges]);
   
   const handleClearOutput = useCallback(() => {
     onUpdate(id, { output: null });
@@ -257,7 +272,7 @@ function NodeToolbar({
   nodeId: string;
   items: ("delete" | "aspect" | "model" | "settings")[];
   onDelete: (id: string) => void;
-  onUpdate: (id: string, data: Partial<NodeData>) => void;
+  onUpdate: (id: string, data: Partial<Omit<NodeData, 'nodes' | 'edges'>>) => void;
   type: NodeType;
   model: string;
   aspectRatio: string;

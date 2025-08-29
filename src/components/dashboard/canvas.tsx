@@ -36,6 +36,9 @@ export interface NodeData {
     id: string,
     data: Partial<Omit<NodeData, "id" | "onDelete" | "onUpdate">>
   ) => void;
+  // Passing these down to each node for connection logic
+  nodes: Node[];
+  edges: Edge[];
 }
 
 const initialNodes: Node[] = [
@@ -140,9 +143,11 @@ export function Canvas() {
           id: node.id,
           onDelete: deleteNode,
           onUpdate: updateNodeData,
+          nodes, // Pass all nodes
+          edges, // Pass all edges
         },
       })),
-    [nodes, deleteNode, updateNodeData]
+    [nodes, edges, deleteNode, updateNodeData]
   );
 
   return (
