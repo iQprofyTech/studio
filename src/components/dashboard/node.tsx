@@ -19,7 +19,6 @@ import {
   AudioWaveform,
   Image as ImageIcon,
   Text as TextIcon,
-  Upload,
   Video as VideoIcon,
   LoaderCircle,
   Copy,
@@ -51,7 +50,6 @@ const nodeToolbarConfig: Record<NodeType, ("delete" | "aspect" | "model" | "sett
     "Image": ["delete", "aspect", "model", "settings"],
     "Video": ["delete", "aspect", "model", "settings"],
     "Audio": ["delete", "model", "settings"],
-    "Upload": ["delete", "settings"],
 }
 
 const aspectRatios: Record<string, string> = {
@@ -67,7 +65,6 @@ const mimeTypes: Record<NodeType, string> = {
   Video: "video/mp4",
   Audio: "audio/wav",
   Text: "text/plain",
-  Upload: "",
 }
 
 export function Node({ id, data, selected }: NodeProps) {
@@ -164,7 +161,7 @@ export function Node({ id, data, selected }: NodeProps) {
       <Card className={`w-[380px] rounded-2xl shadow-2xl bg-background/50 backdrop-blur-xl border-2 transition-all duration-300 ${selected ? "border-primary/50 shadow-primary/20" : "border-white/10 dark:border-white/5"}`}>
         <div className={`handle p-3 flex items-center justify-between cursor-grab border-b border-white/10`}>
           <div className="flex items-center gap-2">
-            <Icon className={`w-5 h-5 ${color}`} />
+            <Icon className={`w-5 h-5`} style={{ color }}/>
             <h3 className="font-semibold">{type}</h3>
           </div>
           <div className="flex items-center gap-1 opacity-100">
@@ -214,7 +211,7 @@ export function Node({ id, data, selected }: NodeProps) {
                 </div>
               )}
           </div>
-          {selected && type !== "Upload" && (
+          {selected && (
             <>
               <Textarea
                   placeholder={`Enter your ${type.toLowerCase()} prompt here...`}
@@ -255,7 +252,6 @@ const modelOptions: Record<NodeType, string[]> = {
     Image: ["Imagen 4"],
     Video: ["Veo 3", "Veo 2"],
     Audio: ["TTS-1"],
-    Upload: [],
 }
 
 const aspectRatioOptions = ["16:9", "4:3", "1:1", "3:4", "9:16"];

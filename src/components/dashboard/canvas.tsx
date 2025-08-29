@@ -22,7 +22,7 @@ import { AddNodeToolbar } from "./add-node-toolbar";
 import { Node as CustomNode } from "./node";
 import { nodeInfo } from "./node-info";
 
-export type NodeType = "Text" | "Image" | "Video" | "Audio" | "Upload";
+export type NodeType = "Text" | "Image" | "Video" | "Audio";
 
 export interface NodeData {
   id: string;
@@ -128,7 +128,7 @@ export function Canvas() {
         eds.filter((edge) => edge.source !== id && edge.target !== id)
       );
     },
-    [setNodes, setEdges]
+    [] // No dependencies, this function is stable
   );
 
   const updateNodeData = useCallback(
@@ -139,7 +139,7 @@ export function Canvas() {
         )
       );
     },
-    [setNodes]
+    [] // No dependencies, this function is stable
   );
 
   const addNode = (type: NodeType) => {

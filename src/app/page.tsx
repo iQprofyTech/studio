@@ -7,8 +7,18 @@ import {
   ImageIcon,
   Mic,
   Link as LinkIcon,
+  Check,
+  Github,
+  Linkedin,
+  Facebook,
+  Twitter,
+  Instagram,
+  Send,
+  MessageCircle,
 } from "lucide-react";
 import Link from "next/link";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+import Image from "next/image";
 
 export default function Home() {
   return (
@@ -66,6 +76,24 @@ export default function Home() {
             />
           </div>
         </div>
+
+        <section id="image-slider" className="container py-12">
+            <div className="max-w-4xl mx-auto">
+                 <Carousel opts={{ loop: true }}>
+                    <CarouselContent>
+                        <CarouselItem>
+                            <Image src="https://picsum.photos/1200/600" data-ai-hint="futuristic city" alt="Generated Image 1" width={1200} height={600} className="rounded-2xl" />
+                        </CarouselItem>
+                        <CarouselItem>
+                            <Image src="https://picsum.photos/1200/600" data-ai-hint="fantasy landscape" alt="Generated Image 2" width={1200} height={600} className="rounded-2xl" />
+                        </CarouselItem>
+                        <CarouselItem>
+                            <Image src="https://picsum.photos/1200/600" data-ai-hint="abstract art" alt="Generated Image 3" width={1200} height={600} className="rounded-2xl" />
+                        </CarouselItem>
+                    </CarouselContent>
+                </Carousel>
+            </div>
+        </section>
         
         <section id="features" className="container py-24 sm:py-32">
           <div className="max-w-2xl mx-auto text-center mb-16">
@@ -116,10 +144,79 @@ export default function Home() {
             />
           </div>
         </section>
+
+        <section id="pricing" className="container py-24 sm:py-32">
+          <div className="max-w-2xl mx-auto text-center mb-16">
+            <h2 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl font-headline">Простые и понятные тарифы</h2>
+            <p className="mt-4 text-lg text-muted-foreground">
+              Выберите план, который подходит именно вам. Начните бесплатно.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <PricingCard
+                title="Free"
+                price="$0"
+                period="/ month"
+                features={["100 генераций", "Базовые модели", "Поддержка по email"]}
+                buttonText="Начать бесплатно"
+                variant="default"
+            />
+            <PricingCard
+                title="Creator"
+                price="$15"
+                period="/ month"
+                features={["1000 генераций", "Продвинутые модели", "Приоритетная поддержка", "Доступ к новым функциям"]}
+                buttonText="Выбрать Creator"
+                variant="default"
+                isFeatured
+            />
+            <PricingCard
+                title="Pro Creator"
+                price="$40"
+                period="/ month"
+                features={["Безлимитные генерации", "Все модели, включая премиум", "Персональный менеджер", "API доступ"]}
+                buttonText="Выбрать Pro"
+                variant="default"
+            />
+          </div>
+        </section>
       </main>
 
-      <footer className="border-t">
-        <div className="container py-8 text-center text-sm text-muted-foreground">
+      <footer className="border-t bg-background/50">
+        <div className="container py-12 grid grid-cols-1 md:grid-cols-3 gap-8 text-sm text-muted-foreground">
+            <div className="flex flex-col gap-4 items-center md:items-start text-center md:text-left">
+                <Link href="/" className="flex items-center space-x-2">
+                    <Logo className="h-8 w-8" />
+                    <span className="font-bold text-lg text-foreground">FlowForge AI</span>
+                </Link>
+                <p>123 AI Street, Generative City, 40404</p>
+            </div>
+            <div className="flex flex-col gap-4 items-center">
+                 <div className="flex flex-col items-center gap-2">
+                    <Link href="#" className="hover:text-primary transition-colors">Политика конфиденциальности</Link>
+                    <Link href="#" className="hover:text-primary transition-colors">Белые листы</Link>
+                </div>
+                <div className="flex gap-4">
+                    <Link href="#" className="text-muted-foreground hover:text-primary"><Github className="w-5 h-5" /></Link>
+                    <Link href="#" className="text-muted-foreground hover:text-primary"><Linkedin className="w-5 h-5" /></Link>
+                    <Link href="#" className="text-muted-foreground hover:text-primary"><Facebook className="w-5 h-5" /></Link>
+                    <Link href="#" className="text-muted-foreground hover:text-primary"><Twitter className="w-5 h-5" /></Link>
+                    <Link href="#" className="text-muted-foreground hover:text-primary"><Instagram className="w-5 h-5" /></Link>
+                    <Link href="#" className="text-muted-foreground hover:text-primary">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M22 6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6zm-2 0l-8 5-8-5h16zm0 12H4V8l8 5 8-5v10z"/></svg>
+                    </Link>
+                    <Link href="#" className="text-muted-foreground hover:text-primary">
+                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm0 22C6.48 22 2 17.52 2 12S6.48 2 12 2s10 4.48 10 10-4.48 10-10 10zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg>
+                    </Link>
+                </div>
+            </div>
+            <div className="flex flex-col gap-4 items-center md:items-end text-center md:text-right">
+                <h4 className="font-semibold text-foreground">Связаться</h4>
+                 <Link href="#" className="flex items-center gap-2 hover:text-primary transition-colors"><MessageCircle className="w-4 h-4"/>Whatsapp</Link>
+                 <Link href="#" className="flex items-center gap-2 hover:text-primary transition-colors"><Send className="w-4 h-4" />Telegram</Link>
+            </div>
+        </div>
+        <div className="container py-4 text-center text-xs text-muted-foreground/80 border-t">
           © {new Date().getFullYear()} FlowForge AI. All rights reserved.
         </div>
       </footer>
@@ -141,4 +238,29 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode, titl
       </CardContent>
     </Card>
   );
+}
+
+function PricingCard({ title, price, period, features, buttonText, variant, isFeatured }: { title: string, price: string, period: string, features: string[], buttonText: string, variant: "default" | "outline", isFeatured?: boolean }) {
+    return (
+        <Card className={isFeatured ? "border-primary shadow-primary/20 shadow-lg" : ""}>
+            <CardHeader className="p-6">
+                <CardTitle className="text-2xl font-bold">{title}</CardTitle>
+                <div className="flex items-baseline gap-2">
+                   <span className="text-4xl font-extrabold">{price}</span>
+                   <span className="text-muted-foreground">{period}</span>
+                </div>
+            </CardHeader>
+            <CardContent className="p-6 pt-0">
+                <ul className="space-y-3 mb-6">
+                    {features.map(feature => (
+                        <li key={feature} className="flex items-center gap-2">
+                           <Check className="w-5 h-5 text-green-500" />
+                           <span>{feature}</span>
+                        </li>
+                    ))}
+                </ul>
+                <Button className="w-full" variant={isFeatured ? "default" : "outline"}>{buttonText}</Button>
+            </CardContent>
+        </Card>
+    )
 }

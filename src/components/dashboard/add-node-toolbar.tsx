@@ -7,7 +7,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { AudioWaveform, Image, Text, Upload, Video } from "lucide-react";
+import { AudioWaveform, Image, Text, Video } from "lucide-react";
 import type { NodeType } from "./canvas";
 
 interface AddNodeToolbarProps {
@@ -19,7 +19,6 @@ const nodeTypes = [
   { type: "Image", icon: Image, label: "Add Image Node" },
   { type: "Video", icon: Video, label: "Add Video Node" },
   { type: "Audio", icon: AudioWaveform, label: "Add Audio Node" },
-  { type: "Upload", icon: Upload, label: "Add Upload Node" },
 ] as const;
 
 export function AddNodeToolbar({ onAddNode }: AddNodeToolbarProps) {
