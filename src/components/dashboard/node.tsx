@@ -192,15 +192,6 @@ export function Node({ id, data, selected }: NodeProps) {
                     <Button variant="ghost" size="icon" className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white" onClick={handleClearOutput}><XCircle className="w-4 h-4" /></Button>
                   </div>
                 </>
-              ) : type === 'Image' ? (
-                <Image
-                  src={`https://picsum.photos/380/214?${id}`} // Add id to vary image
-                  width={380}
-                  height={214}
-                  alt="Placeholder image"
-                  className="w-full h-full object-cover opacity-20"
-                  data-ai-hint="abstract art"
-                />
               ) : (
                 <div className="text-muted-foreground/50 text-sm p-4 text-center">
                   {type === "Upload" ? "Upload a file" : "Preview will appear here"}
