@@ -22,6 +22,9 @@ import {
   Upload,
   Video as VideoIcon,
   LoaderCircle,
+  Copy,
+  Download,
+  XCircle,
 } from "lucide-react";
 import Image from "next/image";
 import type { NodeData, NodeType } from "./canvas";
@@ -67,6 +70,14 @@ const aspectRatios: Record<string, string> = {
     "9:16": "aspect-[9/16]",
 };
 
+const mimeTypes: Record<NodeType, string> = {
+  Image: "image/png",
+  Video: "video/mp4",
+  Audio: "audio/wav",
+  Text: "text/plain",
+  Upload: "",
+}
+
 export function Node({ id, data, selected }: NodeProps) {
   const { type, prompt, aspectRatio, model, onDelete, onUpdate, output } = data;
   const Icon = nodeInfo[type].icon;
@@ -110,6 +121,28 @@ export function Node({ id, data, selected }: NodeProps) {
       setIsLoading(false);
     }
   }, [type, prompt, id, onUpdate, toast]);
+  
+  const handleClearOutput = useCallback(() => {
+    onUpdate(id, { output: null });
+  }, [id, onUpdate]);
+
+  const handleDownload = useCallback(() => {
+    if (!output) return;
+    const link = document.createElement("a");
+    link.href = output;
+    const extension = mimeTypes[type].split("/")[1];
+    link.download = `${type.toLowerCase()}_${Date.now()}.${extension}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [output, type]);
+  
+  const handleCopy = useCallback(() => {
+    if (!output) return;
+    navigator.clipboard.writeText(output).then(() => {
+      toast({ title: "Copied to clipboard!" });
+    });
+  }, [output, toast]);
 
 
   return (
@@ -135,7 +168,7 @@ export function Node({ id, data, selected }: NodeProps) {
         </div>
         
         <CardContent className="p-3 space-y-3">
-          <div className={cn("bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden relative", aspectRatios[aspectRatio] || "aspect-square")}>
+          <div className={cn("bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden relative group/preview", aspectRatios[aspectRatio] || "aspect-square")}>
              {isLoading && (
                 <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-10">
                     <LoaderCircle className="w-8 h-8 text-primary animate-spin" />
@@ -148,6 +181,16 @@ export function Node({ id, data, selected }: NodeProps) {
                   {type === "Video" && <video src={output} controls className="w-full h-full object-cover" />}
                   {type === "Audio" && <div className="p-4 w-full"><audio src={output} controls className="w-full" /></div>}
                   {type === 'Text' && <div className="p-4 text-sm overflow-y-auto max-h-60 w-full text-left"><p>{output}</p></div>}
+                  
+                   <div className="absolute top-2 right-2 z-10 flex flex-col gap-2 opacity-0 group-hover/preview:opacity-100 transition-opacity">
+                    {type === "Text" && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white" onClick={handleCopy}><Copy className="w-4 h-4" /></Button>
+                    )}
+                    {(type === "Image" || type === "Video" || type === "Audio") && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white" onClick={handleDownload}><Download className="w-4 h-4" /></Button>
+                    )}
+                    <Button variant="ghost" size="icon" className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white" onClick={handleClearOutput}><XCircle className="w-4 h-4" /></Button>
+                  </div>
                 </>
               ) : type === 'Image' ? (
                 <Image
