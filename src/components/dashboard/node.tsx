@@ -27,6 +27,7 @@ import {
   XCircle,
 } from "lucide-react";
 import Image from "next/image";
+import type { Node as ReactFlowNode } from 'reactflow';
 import type { NodeData, NodeType } from "./canvas";
 import { Handle, Position } from "reactflow";
 import { cn } from "@/lib/utils";
@@ -37,23 +38,13 @@ import { generateVideoFromText } from "@/ai/flows/generate-video-from-text";
 import { generateAudioFromText } from "@/ai/flows/generate-audio-from-text";
 import { generateVideoFromImage } from "@/ai/flows/generate-video-from-image";
 import { useToast } from "@/hooks/use-toast";
+import { nodeInfo } from "./node-info";
 
 interface NodeProps {
   id: string;
   data: NodeData;
   selected: boolean;
 }
-
-const nodeInfo: Record<
-  NodeType,
-  { icon: React.ElementType; color: string }
-> = {
-  Text: { icon: TextIcon, color: "text-blue-400" },
-  Image: { icon: ImageIcon, color: "text-green-400" },
-  Video: { icon: VideoIcon, color: "text-red-400" },
-  Audio: { icon: AudioWaveform, color: "text-yellow-400" },
-  Upload: { icon: Upload, color: "text-purple-400" },
-};
 
 const nodeToolbarConfig: Record<NodeType, ("delete" | "aspect" | "model" | "settings")[]> = {
     "Text": ["delete", "model", "settings"],
@@ -90,19 +81,22 @@ export function Node({ id, data, selected }: NodeProps) {
 
   const handleGenerate = useCallback(async () => {
     setIsLoading(true);
-    onUpdate(id, { output: null }); // Clear previous output
+    onUpdate(id, { output: null, isGenerating: true }); // Clear previous output and set generating state
     try {
       let result;
 
       // Find the input node if any
       const inputEdge = edges.find(edge => edge.target === id);
       const inputNode = inputEdge ? nodes.find(node => node.id === inputEdge.source) : null;
-      const inputNodeData = inputNode?.data;
+      const inputNodeData = inputNode?.data as NodeData | undefined;
       
       if (type === 'Text') {
         const response = await generateTextFromText({ prompt });
         result = response.generatedText;
       } else if (type === 'Image') {
+         if (!prompt) {
+            throw new Error("Prompt cannot be empty for image generation.");
+        }
         const response = await generateImageFromText({ prompt });
         result = response.imageDataUri;
       } else if (type === 'Video') {
@@ -111,6 +105,9 @@ export function Node({ id, data, selected }: NodeProps) {
          if (inputNodeData?.type === 'Image' && inputNodeData?.output) {
             response = await generateVideoFromImage({ prompt, photoDataUri: inputNodeData.output });
          } else {
+            if (!prompt) {
+                throw new Error("Prompt cannot be empty for video generation.");
+            }
             response = await generateVideoFromText({ prompt });
          }
         result = response.videoDataUri;
@@ -134,6 +131,7 @@ export function Node({ id, data, selected }: NodeProps) {
       });
     } finally {
       setIsLoading(false);
+      onUpdate(id, { isGenerating: false });
     }
   }, [type, prompt, id, onUpdate, toast, nodes, edges]);
   
@@ -162,7 +160,7 @@ export function Node({ id, data, selected }: NodeProps) {
 
   return (
     <div className="group">
-       <Handle type="target" position={Position.Left} className="!bg-primary" />
+       <Handle type="target" position={Position.Left} className="!bg-primary !-left-4 !w-3 !h-3" />
       <Card className={`w-[380px] rounded-2xl shadow-2xl bg-background/50 backdrop-blur-xl border-2 transition-all duration-300 ${selected ? "border-primary/50 shadow-primary/20" : "border-white/10 dark:border-white/5"}`}>
         <div className={`handle p-3 flex items-center justify-between cursor-grab border-b border-white/10`}>
           <div className="flex items-center gap-2">
@@ -209,7 +207,10 @@ export function Node({ id, data, selected }: NodeProps) {
                 </>
               ) : (
                 <div className="text-muted-foreground/50 text-sm p-4 text-center">
-                  {type === "Upload" ? "Upload a file" : "Preview will appear here"}
+                   {(type === "Image" || type === "Video") 
+                      ? `Preview (${aspectRatio}) will appear here`
+                      : "Preview will appear here"
+                  }
                 </div>
               )}
           </div>
@@ -230,7 +231,7 @@ export function Node({ id, data, selected }: NodeProps) {
         </CardContent>
 
       </Card>
-      <Handle type="source" position={Position.Right} className="!bg-primary" />
+      <Handle type="source" position={Position.Right} className="!bg-primary !-right-4 !w-3 !h-3" />
     </div>
   );
 }
@@ -272,7 +273,7 @@ function NodeToolbar({
   nodeId: string;
   items: ("delete" | "aspect" | "model" | "settings")[];
   onDelete: (id: string) => void;
-  onUpdate: (id: string, data: Partial<Omit<NodeData, 'nodes' | 'edges'>>) => void;
+  onUpdate: (id: string, data: Partial<Omit<NodeData, 'id' | 'onDelete' | 'onUpdate' | 'nodes' | 'edges' | 'isGenerating'>>) => void;
   type: NodeType;
   model: string;
   aspectRatio: string;

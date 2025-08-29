@@ -67,3 +67,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+    .react-flow__edge-path {
+        @apply transition-all duration-300;
+    }
+}

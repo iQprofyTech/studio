@@ -1,8 +1,7 @@
 
 "use client";
 
-import React, { useCallback, useState }
-from "react";
+import React, { useCallback, useState, useMemo } from "react";
 import ReactFlow, {
   addEdge,
   applyEdgeChanges,
@@ -10,6 +9,7 @@ import ReactFlow, {
   Background,
   Controls,
   MiniMap,
+  type Connection,
   type Edge,
   type OnConnect,
   type OnEdgesChange,
@@ -20,6 +20,7 @@ import "reactflow/dist/style.css";
 
 import { AddNodeToolbar } from "./add-node-toolbar";
 import { Node as CustomNode } from "./node";
+import { nodeInfo } from "./node-info";
 
 export type NodeType = "Text" | "Image" | "Video" | "Audio" | "Upload";
 
@@ -31,26 +32,36 @@ export interface NodeData {
   aspectRatio: string;
   model: string;
   output?: string | null; // Can be text, or data URI for image/video/audio
+  isGenerating: boolean;
   onDelete: (id: string) => void;
   onUpdate: (
     id: string,
     data: Partial<Omit<NodeData, "id" | "onDelete" | "onUpdate">>
   ) => void;
   // Passing these down to each node for connection logic
-  nodes: Node[];
+  nodes: Node<NodeData>[];
   edges: Edge[];
 }
 
-const initialNodes: Node[] = [
+const initialNodes: Node<NodeData>[] = [
   {
     id: "1",
     type: "custom",
     position: { x: 100, y: 150 },
     data: {
+      id: "1",
       type: "Image",
       prompt: "A beautiful landscape painting, digital art, high resolution",
       aspectRatio: "1:1",
       model: "Imagen 4",
+      output: null,
+      isGenerating: false,
+      // @ts-ignore
+      onDelete: () => {},
+      // @ts-ignore
+      onUpdate: () => {},
+      nodes: [],
+      edges: [],
     },
   },
   {
@@ -58,10 +69,19 @@ const initialNodes: Node[] = [
     type: "custom",
     position: { x: 600, y: 250 },
     data: {
+      id: "2",
       type: "Text",
       prompt: "Write a short poem about this landscape.",
       aspectRatio: "1:1",
       model: "Gemini 1.5 Pro",
+      output: null,
+      isGenerating: false,
+      // @ts-ignore
+      onDelete: () => {},
+      // @ts-ignore
+      onUpdate: () => {},
+      nodes: [],
+      edges: [],
     },
   },
 ];
@@ -73,20 +93,32 @@ const nodeTypes = {
 };
 
 export function Canvas() {
-  const [nodes, setNodes] = useState<Node[]>(initialNodes);
+  const [nodes, setNodes] = useState<Node<NodeData>[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    [setNodes]
+    []
   );
+
   const onEdgesChange: OnEdgesChange = useCallback(
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    [setEdges]
+    []
   );
+
   const onConnect: OnConnect = useCallback(
-    (connection) => setEdges((eds) => addEdge(connection, eds)),
-    [setEdges]
+    (connection: Connection) => {
+      const sourceNode = nodes.find(node => node.id === connection.source);
+      if (!sourceNode) return;
+
+      const newEdge: Edge = {
+        ...connection,
+        id: `${connection.source}-${connection.target}`,
+        style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
+      };
+      setEdges((eds) => addEdge(newEdge, eds));
+    },
+    [nodes]
   );
 
   const deleteNode = useCallback(
@@ -96,7 +128,7 @@ export function Canvas() {
         eds.filter((edge) => edge.source !== id && edge.target !== id)
       );
     },
-    [setNodes, setEdges]
+    []
   );
 
   const updateNodeData = useCallback(
@@ -107,7 +139,7 @@ export function Canvas() {
         )
       );
     },
-    [setNodes]
+    []
   );
 
   const addNode = (type: NodeType) => {
@@ -117,24 +149,32 @@ export function Canvas() {
     if (type === "Video") defaultModel = "Veo 3";
     if (type === "Audio") defaultModel = "TTS-1";
 
-    const newNode: Node = {
-      id: `${Date.now()}`,
+    const newNodeId = `${Date.now()}`;
+    const newNode: Node<NodeData> = {
+      id: newNodeId,
       type: "custom",
       position: {
         x: window.innerWidth / 2 - 190,
         y: window.innerHeight / 3 - 150,
       },
       data: {
+        id: newNodeId,
         type,
         prompt: "",
         aspectRatio: "1:1",
         model: defaultModel,
+        output: null,
+        isGenerating: false,
+        onDelete: deleteNode,
+        onUpdate: updateNodeData,
+        nodes: nodes,
+        edges: edges,
       },
     };
     setNodes((prev) => [...prev, newNode]);
   };
 
-  const nodesWithCallbacks = React.useMemo(
+  const nodesWithCallbacks = useMemo(
     () =>
       nodes.map((node) => ({
         ...node,
@@ -150,11 +190,22 @@ export function Canvas() {
     [nodes, edges, deleteNode, updateNodeData]
   );
 
+ const animatedEdges = useMemo(() => {
+    return edges.map(edge => {
+      const targetNode = nodes.find(node => node.id === edge.target);
+      if (targetNode?.data.isGenerating) {
+        return { ...edge, animated: true };
+      }
+      return edge;
+    });
+  }, [edges, nodes]);
+
+
   return (
     <div className="relative w-full h-[calc(100vh-3.5rem)] overflow-hidden">
       <ReactFlow
         nodes={nodesWithCallbacks}
-        edges={edges}
+        edges={animatedEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
