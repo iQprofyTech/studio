@@ -26,6 +26,7 @@ import {
 import Image from "next/image";
 import type { NodeData, NodeType } from "./canvas";
 import { Handle, Position } from "reactflow";
+import { cn } from "@/lib/utils";
 
 interface NodeProps {
   id: string;
@@ -51,6 +52,14 @@ const nodeToolbarConfig: Record<NodeType, ("delete" | "aspect" | "model" | "sett
     "Audio": ["delete", "model", "settings"],
     "Upload": ["delete", "settings"],
 }
+
+const aspectRatios: Record<string, string> = {
+    "16:9": "aspect-[16/9]",
+    "4:3": "aspect-[4/3]",
+    "1:1": "aspect-square",
+    "3:4": "aspect-[3/4]",
+    "9:16": "aspect-[9/16]",
+};
 
 export function Node({ id, data, selected }: NodeProps) {
   const { type, prompt, aspectRatio, model, onDelete, onUpdate } = data;
@@ -81,7 +90,7 @@ export function Node({ id, data, selected }: NodeProps) {
         </div>
         
         <CardContent className="p-3 space-y-3">
-          <div className="aspect-video bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden">
+          <div className={cn("bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden", aspectRatios[aspectRatio] || "aspect-square")}>
               {type === "Image" ? (
               <Image
                   src={`https://picsum.photos/380/214?${id}`} // Add id to vary image
@@ -139,7 +148,7 @@ const modelOptions: Record<NodeType, string[]> = {
     Upload: [],
 }
 
-const aspectRatios = ["16:9", "1:1", "4:3", "9:16"];
+const aspectRatioOptions = ["16:9", "4:3", "1:1", "3:4", "9:16"];
 
 
 function NodeToolbar({
@@ -212,7 +221,7 @@ function NodeToolbar({
                 <DropdownMenuContent align="end">
                      <DropdownMenuLabel>Aspect Ratio</DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    {aspectRatios.map(ratio => (
+                    {aspectRatioOptions.map(ratio => (
                         <DropdownMenuItem key={ratio} onSelect={() => onUpdate(nodeId, { aspectRatio: ratio })}>
                            {ratio}
                         </DropdownMenuItem>
