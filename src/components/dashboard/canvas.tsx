@@ -128,7 +128,7 @@ export function Canvas() {
         eds.filter((edge) => edge.source !== id && edge.target !== id)
       );
     },
-    [] 
+    [setNodes, setEdges] 
   );
 
   const updateNodeData = useCallback(
@@ -139,7 +139,7 @@ export function Canvas() {
         )
       );
     },
-    []
+    [setNodes]
   );
 
  const addNode = useCallback(
