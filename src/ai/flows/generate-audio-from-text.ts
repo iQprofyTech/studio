@@ -66,6 +66,9 @@ const generateAudioFromTextFlow = ai.defineFlow(
     outputSchema: GenerateAudioFromTextOutputSchema,
   },
   async ({prompt}) => {
+    if (!prompt) {
+      throw new Error('Prompt cannot be empty.');
+    }
     const {media} = await ai.generate({
       model: googleAI.model('gemini-2.5-flash-preview-tts'),
       config: {
