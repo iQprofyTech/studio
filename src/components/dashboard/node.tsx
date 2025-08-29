@@ -88,28 +88,33 @@ export function Node({ id, data, selected }: NodeProps) {
       const inputNodeData = inputNode?.data as NodeData | undefined;
       
       const generationPrompt = inputNodeData?.type === 'Text' && inputNodeData.output ? inputNodeData.output : prompt;
+      const imageInput = inputNodeData?.type === 'Image' && inputNodeData.output ? inputNodeData.output : null;
 
-      if (!generationPrompt && type !== 'Video' && inputNodeData?.type !== 'Image') {
-         throw new Error(`Prompt cannot be empty for ${type} generation.`);
+
+      if (!generationPrompt && !imageInput) {
+         throw new Error(`Prompt or image input cannot be empty for ${type} generation.`);
       }
 
       if (type === 'Text') {
         const response = await generateTextFromText({ prompt: generationPrompt });
         result = response.generatedText;
       } else if (type === 'Image') {
+        if (!generationPrompt) throw new Error("Prompt is required for image generation.");
         const response = await generateImageFromText({ prompt: generationPrompt });
         result = response.imageDataUri;
       } else if (type === 'Video') {
          toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
          let response;
-         if (inputNodeData?.type === 'Image' && inputNodeData?.output) {
-            response = await generateVideoFromImage({ prompt, photoDataUri: inputNodeData.output });
+         if (imageInput) {
+            response = await generateVideoFromImage({ prompt: prompt || "Animate this image", photoDataUri: imageInput });
          } else {
+            if (!generationPrompt) throw new Error("Prompt is required for video generation.");
             response = await generateVideoFromText({ prompt: generationPrompt });
          }
         result = response.videoDataUri;
         toast({ title: "✅ Video generation complete!", description: "The preview will be updated shortly." });
       } else if (type === 'Audio') {
+        if (!generationPrompt) throw new Error("Prompt is required for audio generation.");
         const response = await generateAudioFromText({ prompt: generationPrompt });
         result = response.audioDataUri;
       }
@@ -244,11 +249,52 @@ const tooltipMap = {
     settings: "Settings"
 };
 
-const modelOptions: Record<NodeType, string[]> = {
-    Text: ["Gemini 1.5 Pro", "Gemini 1.5 Flash"],
-    Image: ["Imagen 4"],
-    Video: ["Veo 3", "Veo 2"],
-    Audio: ["TTS-1"],
+const modelOptions: Record<NodeType, { name: string; enabled: boolean }[]> = {
+    Text: [
+        { name: "Gemini 1.5 Pro", enabled: true },
+        { name: "Gemini 1.5 Flash", enabled: true },
+        { name: "Google AI редактор (Gemini Flash 2.0)", enabled: false },
+        { name: "ChatGPT 4.5", enabled: false },
+        { name: "ChatGPT 4-o (omni)", enabled: false },
+        { name: "Grok 3", enabled: false },
+        { name: "DeepSeek R1", enabled: false },
+        { name: "Claude 3.7", enabled: false },
+        { name: "Llama 3.1 405b", enabled: false },
+    ],
+    Image: [
+        { name: "Google Imagen 4", enabled: true },
+        { name: "Sora Images", enabled: false },
+        { name: "Stable Diffusion", enabled: false },
+        { name: "Flux.1", enabled: false },
+        { name: "Flux.1 Редактор", enabled: false },
+        { name: "Flux.1 PRO", enabled: false },
+        { name: "Flux.1.1 PRO", enabled: false },
+        { name: "Flux.1.1 PRO ULTRA", enabled: false },
+        { name: "GPT-4o Images Generation", enabled: false },
+        { name: "Ideogram", enabled: false },
+    ],
+    Video: [
+        { name: "Google Veo 3", enabled: true },
+        { name: "Google Veo 2", enabled: true },
+        { name: "SORA", enabled: false },
+        { name: "RunWay: Gen-3", enabled: false },
+        { name: "RunWay Gen-4", enabled: false },
+        { name: "Higgsfield", enabled: false },
+        { name: "Luma: Dream Machine", enabled: false },
+        { name: "Kling 1.6", enabled: false },
+        { name: "Kling 2.0", enabled: false },
+        { name: "Hailuo MiniMax 01", enabled: false },
+        { name: "Hailuo MiniMax 02", enabled: false },
+        { name: "MidJourney Video", enabled: false },
+        { name: "Seedance", enabled: false },
+        { name: "Синхронизатор губ (Lipsync RunWay)", enabled: false },
+        { name: "Синхронизатор губ (Lipsync Kling)", enabled: false },
+    ],
+    Audio: [
+        { name: "Gemini TTS", enabled: true },
+        { name: "SUNO v3.5 (создание музыки)", enabled: false },
+        { name: "SUNO v4.0", enabled: false },
+    ],
 }
 
 const aspectRatioOptions = ["16:9", "4:3", "1:1", "3:4", "9:16"];
@@ -294,17 +340,21 @@ function NodeToolbar({
         return (
             <DropdownMenu key={item}>
                 <DropdownMenuTrigger asChild>
-                     <Button variant="ghost" className="h-7 px-2 text-xs">
-                        <Icon className="w-3 h-3 mr-1" />
-                        {model}
+                     <Button variant="ghost" className="h-7 px-2 text-xs max-w-[120px] truncate">
+                        <Icon className="w-3 h-3 mr-1 flex-shrink-0" />
+                        <span className="truncate">{model}</span>
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                     <DropdownMenuLabel>Select Model</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     {modelOptions[type].map(modelOption => (
-                        <DropdownMenuItem key={modelOption} onSelect={() => onUpdate(nodeId, { model: modelOption })}>
-                            {modelOption}
+                        <DropdownMenuItem 
+                            key={modelOption.name} 
+                            onSelect={() => onUpdate(nodeId, { model: modelOption.name })}
+                            disabled={!modelOption.enabled}
+                        >
+                            {modelOption.name}
                         </DropdownMenuItem>
                     ))}
                 </DropdownMenuContent>

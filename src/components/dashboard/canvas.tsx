@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useCallback, useState, useMemo } from "react";
+import React, { useCallback, useState, useMemo, useEffect } from "react";
 import ReactFlow, {
   addEdge,
   applyEdgeChanges,
@@ -43,48 +43,7 @@ export interface NodeData {
   edges: Edge[];
 }
 
-const initialNodes: Node<NodeData>[] = [
-  {
-    id: "1",
-    type: "custom",
-    position: { x: 100, y: 150 },
-    data: {
-      id: "1",
-      type: "Image",
-      prompt: "A beautiful landscape painting, digital art, high resolution",
-      aspectRatio: "1:1",
-      model: "Imagen 4",
-      output: null,
-      isGenerating: false,
-      // @ts-ignore
-      onDelete: () => {},
-      // @ts-ignore
-      onUpdate: () => {},
-      nodes: [],
-      edges: [],
-    },
-  },
-  {
-    id: "2",
-    type: "custom",
-    position: { x: 600, y: 250 },
-    data: {
-      id: "2",
-      type: "Text",
-      prompt: "Write a short poem about this landscape.",
-      aspectRatio: "1:1",
-      model: "Gemini 1.5 Pro",
-      output: null,
-      isGenerating: false,
-      // @ts-ignore
-      onDelete: () => {},
-      // @ts-ignore
-      onUpdate: () => {},
-      nodes: [],
-      edges: [],
-    },
-  },
-];
+const initialNodes: Node<NodeData>[] = [];
 
 const initialEdges: Edge[] = [];
 
@@ -118,7 +77,7 @@ export function Canvas() {
       };
       setEdges((eds) => addEdge(newEdge, eds));
     },
-    [nodes, setEdges]
+    [nodes]
   );
 
   const deleteNode = useCallback(
@@ -128,7 +87,7 @@ export function Canvas() {
         eds.filter((edge) => edge.source !== id && edge.target !== id)
       );
     },
-    [setNodes, setEdges] 
+    [] 
   );
 
   const updateNodeData = useCallback(
@@ -139,24 +98,24 @@ export function Canvas() {
         )
       );
     },
-    [setNodes]
+    []
   );
 
  const addNode = useCallback(
     (type: NodeType) => {
       let defaultModel = 'Default';
       if (type === 'Text') defaultModel = 'Gemini 1.5 Pro';
-      if (type === 'Image') defaultModel = 'Imagen 4';
-      if (type === 'Video') defaultModel = 'Veo 3';
-      if (type === 'Audio') defaultModel = 'TTS-1';
+      if (type === 'Image') defaultModel = 'Google Imagen 4';
+      if (type === 'Video') defaultModel = 'Google Veo 3';
+      if (type === 'Audio') defaultModel = 'Gemini TTS';
 
       const newNodeId = `${Date.now()}`;
       const newNode: Node<Omit<NodeData, 'nodes' | 'edges'>> = {
         id: newNodeId,
         type: 'custom',
         position: {
-          x: window.innerWidth / 2 - 190,
-          y: window.innerHeight / 3 - 150,
+          x: Math.random() * (window.innerWidth / 2),
+          y: Math.random() * (window.innerHeight / 2),
         },
         data: {
           id: newNodeId,
@@ -174,6 +133,13 @@ export function Canvas() {
     },
     [deleteNode, updateNodeData]
   );
+
+  // Add a default node if canvas is empty
+  useEffect(() => {
+    if (nodes.length === 0) {
+      addNode("Image");
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const nodesWithCallbacks = useMemo(
     () =>
