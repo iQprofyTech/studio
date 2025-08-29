@@ -24,6 +24,12 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+   serverActions: {
+    bodySizeLimit: '4.5mb',
+    // Allow more time for video generation to complete.
+    // 2 minutes might not be enough for Veo.
+    executionTimeout: 120,
+  },
 };
 
 export default nextConfig;

@@ -28,9 +28,11 @@ export interface NodeData {
   prompt: string;
   aspectRatio: string;
   model: string;
+  output?: string | null; // Can be text, or data URI for image/video/audio
   onDelete: (id: string) => void;
-  onUpdate: (id: string, data: Partial<NodeData>) => void;
+  onUpdate: (id: string, data: Partial<Omit<NodeData, 'id' | 'onDelete' | 'onUpdate'>>) => void;
 }
+
 
 const initialNodes: Node[] = [
   {
@@ -41,7 +43,7 @@ const initialNodes: Node[] = [
       type: "Image",
       prompt: "A beautiful landscape painting, digital art, high resolution",
       aspectRatio: "16:9",
-      model: "DALL-E 3",
+      model: "Imagen 3",
     },
   },
   {
@@ -52,7 +54,7 @@ const initialNodes: Node[] = [
       type: "Text",
       prompt: "Write a short poem about this landscape.",
       aspectRatio: "1:1",
-      model: "Gemini Pro",
+      model: "Gemini 1.5 Pro",
     },
   },
 ];
@@ -94,6 +96,12 @@ export function Canvas() {
   }, [setNodes]);
 
   const addNode = (type: NodeType) => {
+    let defaultModel = "Default";
+    if (type === "Text") defaultModel = "Gemini 1.5 Pro";
+    if (type === "Image") defaultModel = "Imagen 3";
+    if (type === "Video") defaultModel = "Veo";
+    if (type === "Audio") defaultModel = "TTS-1";
+
     const newNode: Node = {
       id: `${Date.now()}`,
       type: "custom",
@@ -105,7 +113,7 @@ export function Canvas() {
         type,
         prompt: "",
         aspectRatio: "1:1",
-        model: "Default",
+        model: defaultModel,
       },
     };
     setNodes((prev) => [...prev, newNode]);
@@ -115,6 +123,7 @@ export function Canvas() {
     ...node,
     data: {
       ...node.data,
+      id: node.id,
       onDelete: deleteNode,
       onUpdate: updateNodeData,
     },

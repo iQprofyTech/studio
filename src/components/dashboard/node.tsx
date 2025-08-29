@@ -21,12 +21,18 @@ import {
   Text as TextIcon,
   Upload,
   Video as VideoIcon,
-  MoreVertical,
+  LoaderCircle,
 } from "lucide-react";
 import Image from "next/image";
 import type { NodeData, NodeType } from "./canvas";
 import { Handle, Position } from "reactflow";
 import { cn } from "@/lib/utils";
+import React, { useState, useCallback } from "react";
+import { generateTextFromText } from "@/ai/flows/generate-text-from-text";
+import { generateImageFromText } from "@/ai/flows/generate-image-from-text";
+import { generateVideoFromText } from "@/ai/flows/generate-video-from-text";
+import { generateAudioFromText } from "@/ai/flows/generate-audio-from-text";
+import { useToast } from "@/hooks/use-toast";
 
 interface NodeProps {
   id: string;
@@ -62,10 +68,49 @@ const aspectRatios: Record<string, string> = {
 };
 
 export function Node({ id, data, selected }: NodeProps) {
-  const { type, prompt, aspectRatio, model, onDelete, onUpdate } = data;
+  const { type, prompt, aspectRatio, model, onDelete, onUpdate, output } = data;
   const Icon = nodeInfo[type].icon;
   const color = nodeInfo[type].color;
   const toolbarItems = nodeToolbarConfig[type];
+
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleGenerate = useCallback(async () => {
+    setIsLoading(true);
+    onUpdate(id, { output: null }); // Clear previous output
+    try {
+      let result;
+      if (type === 'Text') {
+        const response = await generateTextFromText({ prompt });
+        result = response.generatedText;
+      } else if (type === 'Image') {
+        const response = await generateImageFromText({ prompt });
+        result = response.imageDataUri;
+      } else if (type === 'Video') {
+         toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
+        const response = await generateVideoFromText({ prompt });
+        result = response.videoDataUri;
+        toast({ title: "✅ Video generation complete!", description: "The preview will be updated shortly." });
+      } else if (type === 'Audio') {
+        const response = await generateAudioFromText({ prompt });
+        result = response.audioDataUri;
+      }
+      if (result) {
+        onUpdate(id, { output: result });
+      }
+    } catch (error) {
+      console.error("Generation failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Uh oh! Something went wrong.",
+        description: error instanceof Error ? error.message : "An unknown error occurred.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [type, prompt, id, onUpdate, toast]);
+
 
   return (
     <div className="group">
@@ -90,21 +135,36 @@ export function Node({ id, data, selected }: NodeProps) {
         </div>
         
         <CardContent className="p-3 space-y-3">
-          <div className={cn("bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden", aspectRatios[aspectRatio] || "aspect-square")}>
-              {type === "Image" ? (
-              <Image
+          <div className={cn("bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden relative", aspectRatios[aspectRatio] || "aspect-square")}>
+             {isLoading && (
+                <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-10">
+                    <LoaderCircle className="w-8 h-8 text-primary animate-spin" />
+                    <p className="text-sm text-primary-foreground mt-2">Generating...</p>
+                </div>
+              )}
+              {output ? (
+                <>
+                  {type === "Image" && <Image src={output} alt="Generated image" layout="fill" objectFit="cover" />}
+                  {type === "Video" && <video src={output} controls className="w-full h-full object-cover" />}
+                  {type === "Audio" && <div className="p-4 w-full"><audio src={output} controls className="w-full" /></div>}
+                  {type === 'Text' && <div className="p-4 text-sm overflow-y-auto max-h-60 w-full text-left"><p>{output}</p></div>}
+                </>
+              ) : type === 'Image' ? (
+                <Image
                   src={`https://picsum.photos/380/214?${id}`} // Add id to vary image
                   width={380}
                   height={214}
-                  alt="Generated image"
-                  className="w-full h-full object-cover"
+                  alt="Placeholder image"
+                  className="w-full h-full object-cover opacity-20"
                   data-ai-hint="abstract art"
-              />
+                />
               ) : (
-              <div className="text-muted-foreground/50 text-sm">Preview</div>
+                <div className="text-muted-foreground/50 text-sm p-4 text-center">
+                  {type === "Upload" ? "Upload a file" : "Preview will appear here"}
+                </div>
               )}
           </div>
-          {selected && (
+          {selected && type !== "Upload" && (
             <>
               <Textarea
                   placeholder={`Enter your ${type.toLowerCase()} prompt here...`}
@@ -112,9 +172,9 @@ export function Node({ id, data, selected }: NodeProps) {
                   onChange={(e) => onUpdate(id, { prompt: e.target.value })}
                   className="bg-background/70 text-sm min-h-[80px]"
               />
-              <Button className="w-full">
-                  <Play className="w-4 h-4 mr-2" />
-                  Generate
+              <Button className="w-full" onClick={handleGenerate} disabled={isLoading}>
+                  {isLoading ? <LoaderCircle className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+                  {isLoading ? "Generating..." : "Generate"}
               </Button>
             </>
           )}
@@ -142,9 +202,9 @@ const tooltipMap = {
 
 const modelOptions: Record<NodeType, string[]> = {
     Text: ["Gemini 1.5 Pro", "GPT-4o", "Llama 3"],
-    Image: ["Stable Diffusion 3", "DALL-E 3", "Imagen 3"],
-    Video: ["Sora", "Veo", "Kling"],
-    Audio: ["MusicGen", "TTS-1", "ElevenLabs"],
+    Image: ["Imagen 3", "Stable Diffusion 3", "DALL-E 3"],
+    Video: ["Veo", "Sora", "Kling"],
+    Audio: ["TTS-1", "MusicGen", "ElevenLabs"],
     Upload: [],
 }
 
