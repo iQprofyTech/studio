@@ -9,6 +9,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { MediaPart } from 'genkit/experimental/ai';
 
 const GenerateVideoFromTextInputSchema = z.object({
   prompt: z
@@ -30,6 +31,17 @@ export async function generateVideoFromText(
   input: GenerateVideoFromTextInput
 ): Promise<GenerateVideoFromTextOutput> {
   return generateVideoFromTextFlow(input);
+}
+
+async function mediaToDataUri(media: MediaPart): Promise<string> {
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch(`${media.media!.url}&key=${process.env.GEMINI_API_KEY}`);
+    if (!response.ok || !response.body) {
+        throw new Error('Failed to download video');
+    }
+    const videoBuffer = await response.buffer();
+    const contentType = media.media?.contentType || "video/mp4";
+    return `data:${contentType};base64,${videoBuffer.toString('base64')}`;
 }
 
 const generateVideoFromTextFlow = ai.defineFlow(
@@ -68,10 +80,7 @@ const generateVideoFromTextFlow = ai.defineFlow(
       throw new Error('Failed to find the generated video');
     }
 
-    // Veo returns a GCS URL that is not directly usable by the client.
-    // For this prototype, we'll just pass the URL but it won't play.
-    // A real implementation would need to download the video to the server
-    // and then provide it to the client, e.g., as a base64 data URI.
-    return {videoDataUri: video.media!.url};
+    const videoDataUri = await mediaToDataUri(video);
+    return {videoDataUri: videoDataUri};
   }
 );

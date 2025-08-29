@@ -11,7 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import * as fs from 'fs';
+import { MediaPart } from 'genkit/experimental/ai';
 
 const GenerateVideoFromImageInputSchema = z.object({
   photoDataUri: z
@@ -36,6 +36,17 @@ export async function generateVideoFromImage(
   input: GenerateVideoFromImageInput
 ): Promise<GenerateVideoFromImageOutput> {
   return generateVideoFromImageFlow(input);
+}
+
+async function mediaToDataUri(media: MediaPart): Promise<string> {
+    const fetch = (await import('node-fetch')).default;
+    const response = await fetch(`${media.media!.url}&key=${process.env.GEMINI_API_KEY}`);
+    if (!response.ok || !response.body) {
+        throw new Error('Failed to download video');
+    }
+    const videoBuffer = await response.buffer();
+    const contentType = media.media?.contentType || "video/mp4";
+    return `data:${contentType};base64,${videoBuffer.toString('base64')}`;
 }
 
 const generateVideoFromImageFlow = ai.defineFlow(
@@ -88,20 +99,7 @@ const generateVideoFromImageFlow = ai.defineFlow(
       throw new Error('Failed to find the generated video');
     }
 
-    // const fetch = (await import('node-fetch')).default;
-    // Add API key before fetching the video.
-    // const videoDownloadResponse = await fetch(
-    //   `${video.media!.url}&key=${process.env.GEMINI_API_KEY}`
-    // );
-    // if (
-    //   !videoDownloadResponse ||
-    //   videoDownloadResponse.status !== 200 ||
-    //   !videoDownloadResponse.body
-    // ) {
-    //   throw new Error('Failed to fetch video');
-    // }
-
-    // Readable.from(videoDownloadResponse.body).pipe(fs.createWriteStream(path));
-    return {videoDataUri: video.media!.url};
+    const videoDataUri = await mediaToDataUri(video);
+    return {videoDataUri: videoDataUri};
   }
 );
