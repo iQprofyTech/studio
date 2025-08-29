@@ -22,10 +22,14 @@ import {
   MoreVertical,
 } from "lucide-react";
 import Image from "next/image";
-import type { NodeData, NodeType } from "./canvas";
+import type { NodeType } from "./canvas";
+import { Handle, Position } from "reactflow";
 
 interface NodeProps {
-  data: NodeData;
+  data: {
+    type: NodeType;
+    prompt: string;
+  };
 }
 
 const nodeInfo: Record<
@@ -40,17 +44,15 @@ const nodeInfo: Record<
 };
 
 export function Node({ data }: NodeProps) {
-  const { type, position, prompt } = data;
+  const { type, prompt } = data;
   const Icon = nodeInfo[type].icon;
   const color = nodeInfo[type].color;
 
   return (
-    <div
-      className="absolute group"
-      style={{ left: `${position.x}px`, top: `${position.y}px` }}
-    >
+    <div className="group">
+       <Handle type="target" position={Position.Left} className="!bg-primary" />
       <Card className="w-[380px] rounded-2xl shadow-2xl bg-background/50 backdrop-blur-xl border-2 border-white/10 dark:border-white/5 transition-all duration-300 hover:shadow-primary/20 hover:border-primary/20">
-        <div className="handle p-3 flex items-center justify-between border-b border-white/10">
+        <div className="handle p-3 flex items-center justify-between border-b border-white/10 cursor-grab">
           <div className="flex items-center gap-2">
             <Icon className={`w-5 h-5 ${color}`} />
             <h3 className="font-semibold">{type} Node</h3>
@@ -85,6 +87,7 @@ export function Node({ data }: NodeProps) {
           </Button>
         </CardContent>
       </Card>
+      <Handle type="source" position={Position.Right} className="!bg-primary" />
     </div>
   );
 }

@@ -1,7 +1,22 @@
 "use client";
 
-import React, { useState } from "react";
-import { Node } from "./node";
+import React, { useCallback, useState } from "react";
+import ReactFlow, {
+  addEdge,
+  applyEdgeChanges,
+  applyNodeChanges,
+  MiniMap,
+  Controls,
+  Background,
+  type Node,
+  type Edge,
+  type OnNodesChange,
+  type OnEdgesChange,
+  type OnConnect,
+} from "reactflow";
+import "reactflow/dist/style.css";
+
+import { Node as CustomNode } from "./node";
 import { AddNodeToolbar } from "./add-node-toolbar";
 
 export type NodeType = "Text" | "Image" | "Video" | "Audio" | "Upload";
@@ -15,60 +30,89 @@ export interface NodeData {
   model: string;
 }
 
-const initialNodes: NodeData[] = [
+const initialNodes: Node[] = [
   {
     id: "1",
-    type: "Image",
+    type: "custom",
     position: { x: 100, y: 150 },
-    prompt: "A beautiful landscape painting, digital art, high resolution",
-    aspectRatio: "16:9",
-    model: "Stable Diffusion",
+    data: {
+      type: "Image",
+      prompt: "A beautiful landscape painting, digital art, high resolution",
+      aspectRatio: "16:9",
+      model: "Stable Diffusion",
+    },
   },
   {
     id: "2",
-    type: "Text",
+    type: "custom",
     position: { x: 600, y: 250 },
-    prompt: "Write a short poem about this landscape.",
-    aspectRatio: "1:1",
-    model: "Gemini Pro",
+    data: {
+      type: "Text",
+      prompt: "Write a short poem about this landscape.",
+      aspectRatio: "1:1",
+      model: "Gemini Pro",
+    },
   },
 ];
 
+const initialEdges: Edge[] = [];
+
+const nodeTypes = {
+  custom: CustomNode,
+};
+
 export function Canvas() {
-  const [nodes, setNodes] = useState<NodeData[]>(initialNodes);
+  const [nodes, setNodes] = useState<Node[]>(initialNodes);
+  const [edges, setEdges] = useState<Edge[]>(initialEdges);
+
+  const onNodesChange: OnNodesChange = useCallback(
+    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    [setNodes]
+  );
+  const onEdgesChange: OnEdgesChange = useCallback(
+    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    [setEdges]
+  );
+  const onConnect: OnConnect = useCallback(
+    (connection) => setEdges((eds) => addEdge(connection, eds)),
+    [setEdges]
+  );
 
   const addNode = (type: NodeType) => {
-    const newNode: NodeData = {
+    const newNode: Node = {
       id: `${Date.now()}`,
-      type,
-      // Position new nodes in the center of the viewport
-      position: { x: window.innerWidth / 2 - 150, y: window.innerHeight / 2 - 200 },
-      prompt: "",
-      aspectRatio: "1:1",
-      model: "Default",
+      type: "custom",
+      position: {
+        x: window.innerWidth / 2 - 190,
+        y: window.innerHeight / 3,
+      },
+      data: {
+        type,
+        prompt: "",
+        aspectRatio: "1:1",
+        model: "Default",
+      },
     };
     setNodes((prev) => [...prev, newNode]);
   };
 
   return (
-    <div className="relative w-full h-[calc(100vh-3.5rem)] overflow-hidden bg-grid">
-      <style jsx>{`
-        .bg-grid {
-          background-image:
-            linear-gradient(to right, hsl(var(--border)) 1px, transparent 1px),
-            linear-gradient(to bottom, hsl(var(--border)) 1px, transparent 1px);
-          background-size: 40px 40px;
-        }
-      `}</style>
+    <div className="relative w-full h-[calc(100vh-3.5rem)] overflow-hidden">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        nodeTypes={nodeTypes}
+        fitView
+      >
+        <Controls />
+        <MiniMap />
+        <Background gap={40} />
+      </ReactFlow>
       
       <AddNodeToolbar onAddNode={addNode} />
-
-      {nodes.map((node) => (
-        <Node key={node.id} data={node} />
-      ))}
-       <div className="absolute bottom-4 right-4 text-xs text-muted-foreground bg-background/50 p-2 rounded-md backdrop-blur-sm">
-        Note: Node dragging and connections require a library like React Flow. This is a visual representation.
-      </div>
     </div>
   );
 }
