@@ -92,11 +92,15 @@ export function Canvas() {
     connectingNodeId.current = { nodeId, handleId };
   }, []);
 
- const onConnectEnd: OnConnectEnd = useCallback(
+  const onConnectEnd: OnConnectEnd = useCallback(
     (event) => {
-      if (!connectingNodeId.current.nodeId || !reactFlowWrapper.current || !reactFlowInstance) {
+      const sourceNodeId = connectingNodeId.current.nodeId;
+      const sourceHandleId = connectingNodeId.current.handleId;
+
+      if (!sourceNodeId || !reactFlowWrapper.current || !reactFlowInstance) {
           return;
       }
+      
       const targetIsPane = (event.target as HTMLElement).classList.contains(
         'react-flow__pane'
       );
@@ -107,13 +111,13 @@ export function Canvas() {
         setMenu({
           top: (event as MouseEvent).clientY - top,
           left: (event as MouseEvent).clientX - left,
-          sourceNodeId: connectingNodeId.current.nodeId!,
-          sourceHandleId: connectingNodeId.current.handleId,
+          sourceNodeId: sourceNodeId,
+          sourceHandleId: sourceHandleId,
         });
       }
     },
     [reactFlowInstance]
-);
+  );
 
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
@@ -144,7 +148,7 @@ export function Canvas() {
          return nds;
        })
     },
-    [edges, toast, setNodes, setEdges]
+    [edges, toast]
   );
 
   const deleteNode = useCallback(
@@ -161,28 +165,27 @@ export function Canvas() {
     setEdges(eds => eds.filter(edge => edge.id !== id));
   }, []);
 
-
   const updateNodeData = useCallback(
-    (id: string, data: Partial<Omit<NodeData, 'id' | 'onDelete' | 'onUpdate' | 'nodes' | 'edges'>>) => {
-      setNodes((nds) =>
-        nds.map((node) =>
-          node.id === id ? { ...node, data: { ...node.data, ...data } } : node
-        )
-      );
+    (id: string, data: Partial<Omit<NodeData, 'id' | 'onDelete' | 'onUpdate' | 'nodes' | 'edges' | 'isGenerating' | 'onDeleteEdge'>>) => {
+        setNodes(nds =>
+            nds.map(node =>
+                node.id === id ? { ...node, data: { ...node.data, ...data } } : node
+            )
+        );
     },
-    []
+    [setNodes]
   );
   
   const addNode = useCallback(
-    (type: NodeType, position?: { x: number; y: number }, sourceNodeId?: string) => {
+    (type: NodeType, position?: { x: number; y: number }, sourceNodeId?: string, sourceHandle?: string | null) => {
         setMenu(null);
         if (nodes.length >= MAX_NODES) {
-        toast({
-            variant: "destructive",
-            title: "Node Limit Reached",
-            description: `You can only have a maximum of ${MAX_NODES} nodes on the canvas.`,
-        });
-        return;
+            toast({
+                variant: "destructive",
+                title: "Node Limit Reached",
+                description: `You can only have a maximum of ${MAX_NODES} nodes on the canvas.`,
+            });
+            return;
         }
 
         let defaultModel = 'Default';
@@ -192,47 +195,55 @@ export function Canvas() {
         if (type === 'Audio') defaultModel = 'Gemini TTS';
 
         const newNodeId = `${type}-${Date.now()}`;
-        const pos = position || (reactFlowInstance ? reactFlowInstance.project({
-        x: (reactFlowWrapper.current?.clientWidth || window.innerWidth) / 2,
-        y: (reactFlowWrapper.current?.clientHeight || window.innerHeight) / 3,
-        }) : { x: 0, y: 0});
+        
+        let pos: { x: number; y: number };
+        if (position) {
+            pos = position;
+        } else if (reactFlowInstance) {
+            pos = reactFlowInstance.project({
+                x: (reactFlowWrapper.current?.clientWidth || window.innerWidth) / 2,
+                y: (reactFlowWrapper.current?.clientHeight || window.innerHeight) / 3,
+            });
+        } else {
+            pos = { x: 0, y: 0 };
+        }
         
         const newNode: Node<Omit<NodeData, 'nodes' | 'edges'>> = {
             id: newNodeId,
             type: 'custom',
             position: pos,
             data: {
-            id: newNodeId,
-            type,
-            prompt: '',
-            aspectRatio: '1:1',
-            model: defaultModel,
-            output: null,
-            isGenerating: false,
-            onDelete: deleteNode,
-            onUpdate: updateNodeData,
-            onDeleteEdge: deleteEdge,
+                id: newNodeId,
+                type,
+                prompt: '',
+                aspectRatio: '1:1',
+                model: defaultModel,
+                output: null,
+                isGenerating: false,
+                onDelete: deleteNode,
+                onUpdate: updateNodeData,
+                onDeleteEdge: deleteEdge,
             },
         };
         
-        setNodes((nds) => [...nds, newNode as Node<NodeData>]);
+        setNodes(nds => [...nds, newNode as Node<NodeData>]);
 
         if (sourceNodeId) {
-            setEdges((eds) => {
-                const sourceNode = nodes.find(node => node.id === sourceNodeId);
-                if (!sourceNode) return eds;
+            const sourceNode = nodes.find(node => node.id === sourceNodeId);
+            if (sourceNode) {
                 const newEdge = {
                     id: `${sourceNodeId}-${newNodeId}`,
                     source: sourceNodeId,
+                    sourceHandle,
                     target: newNodeId,
                     style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
                     type: 'default',
                 };
-                return addEdge(newEdge, eds)
-            })
+                setEdges(eds => addEdge(newEdge, eds));
+            }
         }
     },
-    [deleteNode, updateNodeData, deleteEdge, toast, reactFlowInstance, nodes]
+    [reactFlowInstance, nodes, toast, deleteNode, updateNodeData, deleteEdge]
   );
 
   // Add a default node if canvas is empty
@@ -240,7 +251,7 @@ export function Canvas() {
     if (nodes.length === 0 && reactFlowInstance) {
       addNode("Image");
     }
-  }, [reactFlowInstance, nodes.length, addNode]);
+  }, [reactFlowInstance, nodes.length]);
 
 
   const nodesWithCallbacks = useMemo(
@@ -292,7 +303,7 @@ export function Canvas() {
         <ContextMenu
           onClick={(nodeType) => {
             const position = reactFlowInstance.screenToFlowPosition({ x: menu.left, y: menu.top });
-            addNode(nodeType, position, menu.sourceNodeId);
+            addNode(nodeType, position, menu.sourceNodeId, menu.sourceHandleId);
             setMenu(null);
           }}
           top={menu.top}
@@ -302,3 +313,5 @@ export function Canvas() {
     </div>
   );
 }
+
+    
