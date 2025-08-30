@@ -74,18 +74,22 @@ function InputHandle({ nodeId, data, isConnected, onDeleteEdge }: { nodeId: stri
   const edge = data.edges.find(e => e.target === nodeId);
 
   return (
-    <div className="group/handle absolute -left-4 top-1/2 -translate-y-1/2 h-full w-4 flex items-center justify-start">
-      <Handle type="target" position={Position.Left} className={cn("!bg-accent !w-3 !h-3", isConnected && "peer")} />
-      {isConnected && edge && (
-        <button
-          onClick={() => onDeleteEdge(edge.id)}
-          className="absolute left-0 p-1 rounded-full bg-destructive/20 text-destructive opacity-0 peer-hover:opacity-100 hover:!opacity-100 transition-opacity z-10 -translate-x-full"
-          aria-label="Delete connection"
-        >
-          <Unplug className="w-3.5 h-3.5" />
-        </button>
-      )}
-    </div>
+      <div className="group/handle absolute -left-4 top-1/2 -translate-y-1/2 h-full w-4 flex items-center justify-start">
+          <Handle
+              type="target"
+              position={Position.Left}
+              className={cn("!w-3 !h-3 !border-2 !bg-background", isConnected ? "!border-accent" : "!border-muted-foreground/50", "peer")}
+          />
+          {isConnected && edge && (
+              <button
+                  onClick={() => onDeleteEdge(edge.id)}
+                  className="absolute left-0 p-1 rounded-full bg-destructive/20 text-destructive opacity-0 peer-hover:opacity-100 hover:!opacity-100 transition-opacity z-10 -translate-x-full"
+                  aria-label="Delete connection"
+              >
+                  <Unplug className="w-3.5 h-3.5" />
+              </button>
+          )}
+      </div>
   );
 }
 
@@ -125,11 +129,13 @@ export function Node({ id, data, selected }: NodeProps) {
             result = response.generatedText;
         }
       } else if (type === 'Image') {
-          if (!generationPrompt) throw new Error("Prompt is required for image generation.");
+          if (!generationPrompt) {
+            throw new Error("Prompt is required for image generation.");
+          }
           const response = await generateImageFromText({ prompt: generationPrompt });
           result = response.imageDataUri;
       } else if (type === 'Video') {
-          if (!prompt && !imageInput) {
+          if (!generationPrompt && !imageInput) {
               throw new Error("Prompt or image input is required for video generation.");
           }
           toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
@@ -137,12 +143,14 @@ export function Node({ id, data, selected }: NodeProps) {
           if (imageInput) {
               response = await generateVideoFromImage({ prompt: prompt || "Animate this image", photoDataUri: imageInput });
           } else {
-              response = await generateVideoFromText({ prompt: prompt! });
+              response = await generateVideoFromText({ prompt: generationPrompt! });
           }
           result = response.videoDataUri;
           toast({ title: "✅ Video generation complete!", description: "The preview will be updated shortly." });
       } else if (type === 'Audio') {
-          if (!generationPrompt) throw new Error("Prompt is required for audio generation.");
+          if (!generationPrompt) {
+             throw new Error("Prompt is required for audio generation.");
+          }
           const response = await generateAudioFromText({ prompt: generationPrompt });
           result = response.audioDataUri;
       }
@@ -210,7 +218,7 @@ export function Node({ id, data, selected }: NodeProps) {
             : "border-white/10 dark:border-white/5"
         )}
         style={selected ? { 
-            backgroundImage: 'linear-gradient(theme(colors.background), theme(colors.background)), linear-gradient(to right, #4BC178, #B555C2)',
+            backgroundImage: 'linear-gradient(hsl(var(--background)), hsl(var(--background))), linear-gradient(to right, #4BC178, #B555C2)',
             backgroundOrigin: 'border-box',
             backgroundClip: 'padding-box, border-box',
         } : {}}
@@ -284,7 +292,7 @@ export function Node({ id, data, selected }: NodeProps) {
         </CardContent>
 
       </Card>
-      <Handle type="source" position={Position.Right} className="!bg-primary !-right-4 !w-3 !h-3 top-1/2" />
+      <Handle type="source" position={Position.Right} className="!bg-primary !border-primary !-right-4 !w-3 !h-3 top-1/2 !border-2" />
     </div>
   );
 }
