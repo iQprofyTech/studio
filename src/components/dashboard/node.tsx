@@ -74,18 +74,18 @@ function InputHandle({ nodeId, data, isConnected, onDeleteEdge }: { nodeId: stri
   const edge = data.edges.find(e => e.target === nodeId);
 
   return (
-    <>
-      <Handle type="target" position={Position.Left} className={cn("!bg-primary !-left-4 !w-3 !h-3", isConnected && "peer")} />
+    <div className="group/handle absolute -left-4 top-1/2 -translate-y-1/2 h-full w-8 flex items-center justify-start">
+      <Handle type="target" position={Position.Left} className={cn("!bg-primary !relative !-left-0 !w-3 !h-3", isConnected && "peer")} />
       {isConnected && edge && (
         <button
           onClick={() => onDeleteEdge(edge.id)}
-          className="absolute -left-10 top-1/2 -translate-y-1/2 p-1 rounded-full bg-destructive/20 text-destructive opacity-0 peer-hover:opacity-100 hover:!opacity-100 transition-opacity z-10"
+          className="absolute -left-3 p-1 rounded-full bg-destructive/20 text-destructive opacity-0 peer-hover:opacity-100 hover:!opacity-100 transition-opacity z-10"
           aria-label="Delete connection"
         >
           <Unplug className="w-3.5 h-3.5" />
         </button>
       )}
-    </>
+    </div>
   );
 }
 
@@ -122,16 +122,10 @@ export function Node({ id, data, selected }: NodeProps) {
             result = response.description;
         } else {
             if (!generationPrompt) {
-              if (imageInput) {
-                 const response = await generateTextFromImage({ photoDataUri: imageInput });
-                 result = response.description;
-              } else {
-                throw new Error("Prompt cannot be empty for Text generation.");
-              }
-            } else {
-                const response = await generateTextFromText({ prompt: generationPrompt });
-                result = response.generatedText;
+               throw new Error("Prompt cannot be empty for Text generation.");
             }
+            const response = await generateTextFromText({ prompt: generationPrompt });
+            result = response.generatedText;
         }
       } else if (type === 'Image') {
           if (!generationPrompt) throw new Error("Prompt is required for image generation.");
@@ -463,3 +457,6 @@ function NodeToolbar({
   );
 }
 
+
+
+    
