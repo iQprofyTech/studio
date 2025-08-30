@@ -15,9 +15,9 @@ import ReactFlow, {
   type OnEdgesChange,
   type OnNodesChange,
   type Node,
-  ReactFlowInstance,
   useReactFlow,
   OnConnectEnd,
+  OnConnectStart,
 } from "reactflow";
 import "reactflow/dist/style.css";
 
@@ -60,7 +60,6 @@ interface ContextMenuData {
   top: number;
   left: number;
   sourceNodeId: string;
-  sourceHandleId: string | null;
 }
 
 export function Canvas() {
@@ -82,7 +81,7 @@ export function Canvas() {
     [setEdges]
   );
   
-  const onConnectStart = useCallback((_: any, { nodeId }: { nodeId: string | null }) => {
+  const onConnectStart: OnConnectStart = useCallback((_, { nodeId }) => {
     connectingNodeId.current = nodeId;
   }, []);
 
@@ -93,14 +92,13 @@ export function Canvas() {
       );
 
       if (targetIsPane && connectingNodeId.current) {
+        const mouseEvent = event as MouseEvent;
         const { top, left } = (reactFlowWrapper.current as HTMLDivElement).getBoundingClientRect();
-        const mouseEvent = event as unknown as MouseEvent;
         
         setMenu({
           top: mouseEvent.clientY - top,
           left: mouseEvent.clientX - left,
           sourceNodeId: connectingNodeId.current,
-          sourceHandleId: null, // We assume one source handle per node for now
         });
       }
     },
@@ -110,6 +108,7 @@ export function Canvas() {
 
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
+       setMenu(null);
       const sourceNode = nodes.find(node => node.id === connection.source);
       if (!sourceNode) return;
 
@@ -120,7 +119,7 @@ export function Canvas() {
       };
       setEdges((eds) => addEdge(newEdge, eds));
     },
-    [nodes]
+    [nodes, setEdges]
   );
 
   const deleteNode = useCallback(
@@ -130,7 +129,7 @@ export function Canvas() {
         eds.filter((edge) => edge.source !== id && edge.target !== id)
       );
     },
-    [] 
+    [setNodes, setEdges] 
   );
 
   const deleteEdge = useCallback((id: string) => {
@@ -146,7 +145,7 @@ export function Canvas() {
         )
       );
     },
-    []
+    [setNodes]
   );
 
   const addNode = useCallback(
@@ -183,9 +182,8 @@ export function Canvas() {
       setNodes((prevNodes) => [...prevNodes, newNode as Node<NodeData>]);
 
       if (sourceNodeId) {
-        setNodes(nds => {
-            const sourceNode = nds.find(node => node.id === sourceNodeId);
-            if (!sourceNode) return nds;
+            const sourceNode = nodes.find(node => node.id === sourceNodeId);
+            if (!sourceNode) return;
             const newEdge: Edge = {
               id: `${sourceNodeId}-${newNodeId}`,
               source: sourceNodeId,
@@ -193,11 +191,9 @@ export function Canvas() {
               style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
             };
             setEdges(eds => addEdge(newEdge, eds));
-            return nds;
-        });
       }
     },
-    [deleteNode, updateNodeData, deleteEdge]
+    [deleteNode, updateNodeData, deleteEdge, nodes]
 );
 
 
