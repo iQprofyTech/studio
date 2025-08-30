@@ -70,7 +70,7 @@ export function Canvas() {
   const [nodes, setNodes] = useState<Node<NodeData>[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, project } = useReactFlow();
   const [menu, setMenu] = useState<ContextMenuData | null>(null);
   const connectingNodeId = useRef<string | null>(null);
   const { toast } = useToast();
@@ -97,14 +97,16 @@ export function Canvas() {
 
   const onConnectEnd: OnConnectEnd = useCallback(
     (event) => {
+      if (!connectingNodeId.current) return;
+
       const targetIsPane = (event.target as HTMLElement).classList.contains(
         'react-flow__pane'
       );
 
-      if (targetIsPane && connectingNodeId.current) {
-        const mouseEvent = event as unknown as MouseEvent;
+      if (targetIsPane) {
+        // We need to remove the wrapper bounds, in order to get the correct position
         const { top, left } = (reactFlowWrapper.current as HTMLDivElement).getBoundingClientRect();
-        
+        const mouseEvent = event as unknown as MouseEvent;
         setMenu({
           top: mouseEvent.clientY - top,
           left: mouseEvent.clientX - left,
@@ -112,7 +114,7 @@ export function Canvas() {
         });
       }
     },
-    [screenToFlowPosition]
+    [project]
   );
 
 
@@ -164,7 +166,7 @@ export function Canvas() {
 
 
   const updateNodeData = useCallback(
-    (id: string, data: Partial<Omit<NodeData, 'id' | 'onDelete' | 'onUpdate'>>) => {
+    (id: string, data: Partial<Omit<NodeData, 'id' | 'onDelete' | 'onUpdate' | 'nodes' | 'edges'>>) => {
       setNodes((nds) =>
         nds.map((node) =>
           node.id === id ? { ...node, data: { ...node.data, ...data } } : node
@@ -176,64 +178,65 @@ export function Canvas() {
   
   const addNode = useCallback(
     (type: NodeType, position?: { x: number; y: number }, sourceNodeId?: string) => {
-      if (nodes.length >= MAX_NODES) {
-        toast({
-          variant: "destructive",
-          title: "Node Limit Reached",
-          description: `You can only have a maximum of ${MAX_NODES} nodes on the canvas.`,
+      setNodes(nds => {
+        if (nds.length >= MAX_NODES) {
+          toast({
+            variant: "destructive",
+            title: "Node Limit Reached",
+            description: `You can only have a maximum of ${MAX_NODES} nodes on the canvas.`,
+          });
+          return nds;
+        }
+
+        let defaultModel = 'Default';
+        if (type === 'Text') defaultModel = 'Gemini 1.5 Pro';
+        if (type === 'Image') defaultModel = 'Google Imagen 4';
+        if (type === 'Video') defaultModel = 'Google Veo 3';
+        if (type === 'Audio') defaultModel = 'Gemini TTS';
+
+        const newNodeId = `${type}-${Date.now()}`;
+        const pos = position || screenToFlowPosition({
+          x: (reactFlowWrapper.current?.clientWidth || window.innerWidth) / 2,
+          y: (reactFlowWrapper.current?.clientHeight || window.innerHeight) / 2,
         });
-        return;
-      }
 
-      let defaultModel = 'Default';
-      if (type === 'Text') defaultModel = 'Gemini 1.5 Pro';
-      if (type === 'Image') defaultModel = 'Google Imagen 4';
-      if (type === 'Video') defaultModel = 'Google Veo 3';
-      if (type === 'Audio') defaultModel = 'Gemini TTS';
-
-      const newNodeId = `${type}-${Date.now()}`;
-      const pos = position || screenToFlowPosition({
-        x: (reactFlowWrapper.current?.clientWidth || window.innerWidth) / 2,
-        y: (reactFlowWrapper.current?.clientHeight || window.innerHeight) / 2,
-      });
-
-      const newNode: Node<Omit<NodeData, 'nodes' | 'edges'>> = {
-        id: newNodeId,
-        type: 'custom',
-        position: pos,
-        data: {
+        const newNode: Node<Omit<NodeData, 'nodes' | 'edges'>> = {
           id: newNodeId,
-          type,
-          prompt: '',
-          aspectRatio: '1:1',
-          model: defaultModel,
-          output: null,
-          isGenerating: false,
-          onDelete: deleteNode,
-          onUpdate: updateNodeData,
-          onDeleteEdge: deleteEdge,
-        },
-      };
-      
-      setNodes((prevNodes) => [...prevNodes, newNode as Node<NodeData>]);
+          type: 'custom',
+          position: pos,
+          data: {
+            id: newNodeId,
+            type,
+            prompt: '',
+            aspectRatio: '1:1',
+            model: defaultModel,
+            output: null,
+            isGenerating: false,
+            onDelete: deleteNode,
+            onUpdate: updateNodeData,
+            onDeleteEdge: deleteEdge,
+          },
+        };
 
-      if (sourceNodeId) {
-          const sourceNode = nodes.find(node => node.id === sourceNodeId);
-          if (!sourceNode) {
-              console.error("Could not find source node for new connection");
-              return;
-          }
-          const newEdge: Edge = {
-              id: `${sourceNodeId}-${newNodeId}`,
-              source: sourceNodeId,
-              target: newNodeId,
-              style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
-              type: 'default',
-          };
-          setEdges(prevEdges => addEdge(newEdge, prevEdges));
-      }
+        if (sourceNodeId) {
+            const sourceNode = nds.find(node => node.id === sourceNodeId);
+            if (sourceNode) {
+              const newEdge: Edge = {
+                  id: `${sourceNodeId}-${newNodeId}`,
+                  source: sourceNodeId,
+                  target: newNodeId,
+                  style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
+                  type: 'default',
+              };
+              setEdges(prevEdges => addEdge(newEdge, prevEdges));
+            } else {
+                console.error("Could not find source node for new connection");
+            }
+        }
+        return [...nds, newNode as Node<NodeData>];
+      });
     },
-    [screenToFlowPosition, deleteNode, updateNodeData, deleteEdge, nodes, toast]
+    [screenToFlowPosition, deleteNode, updateNodeData, deleteEdge, toast]
   );
 
 
@@ -242,7 +245,7 @@ export function Canvas() {
     if (nodes.length === 0) {
       addNode("Image");
     }
-  }, [nodes.length]);
+  }, [nodes.length, addNode]);
 
   const nodesWithCallbacks = useMemo(
     () =>
