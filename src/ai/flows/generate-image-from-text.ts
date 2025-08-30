@@ -41,8 +41,8 @@ const generateImageFromTextFlow = ai.defineFlow(
       model: 'googleai/imagen-4.0-fast-generate-001',
       prompt: input.prompt,
     });
-    if (!media.url) {
-        throw new Error("Image generation failed.");
+    if (!media?.url) {
+        throw new Error("Image generation failed. This could be due to content safety filters.");
     }
     return {imageDataUri: media.url};
   }
