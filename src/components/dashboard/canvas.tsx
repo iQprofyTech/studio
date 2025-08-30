@@ -236,11 +236,11 @@ export function Canvas() {
   );
 
   // Add a default node if canvas is empty
-  useMemo(() => {
+  useEffect(() => {
     if (nodes.length === 0 && reactFlowInstance) {
       addNode("Image");
     }
-  }, [nodes.length, reactFlowInstance]);
+  }, [nodes.length, reactFlowInstance, addNode]);
 
   const nodesWithCallbacks = useMemo(
     () =>
