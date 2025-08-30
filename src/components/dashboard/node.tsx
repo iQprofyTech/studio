@@ -91,33 +91,39 @@ export function Node({ id, data, selected }: NodeProps) {
       const imageInput = inputNodeData?.type === 'Image' && inputNodeData.output ? inputNodeData.output : null;
 
 
-      if (!generationPrompt && !imageInput) {
-         throw new Error(`Prompt or image input cannot be empty for ${type} generation.`);
-      }
-
       if (type === 'Text') {
+        if (!generationPrompt) {
+          throw new Error("Prompt cannot be empty for Text generation.");
+        }
         const response = await generateTextFromText({ prompt: generationPrompt });
         result = response.generatedText;
-      } else if (type === 'Image') {
-        if (!generationPrompt) throw new Error("Prompt is required for image generation.");
-        const response = await generateImageFromText({ prompt: generationPrompt });
-        result = response.imageDataUri;
-      } else if (type === 'Video') {
-         toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
-         let response;
-         if (imageInput) {
-            response = await generateVideoFromImage({ prompt: prompt || "Animate this image", photoDataUri: imageInput });
-         } else {
-            if (!generationPrompt) throw new Error("Prompt is required for video generation.");
-            response = await generateVideoFromText({ prompt: generationPrompt });
-         }
-        result = response.videoDataUri;
-        toast({ title: "✅ Video generation complete!", description: "The preview will be updated shortly." });
-      } else if (type === 'Audio') {
-        if (!generationPrompt) throw new Error("Prompt is required for audio generation.");
-        const response = await generateAudioFromText({ prompt: generationPrompt });
-        result = response.audioDataUri;
+      } else {
+        if (!generationPrompt && !imageInput) {
+            throw new Error(`Prompt or image input cannot be empty for ${type} generation.`);
+        }
+
+        if (type === 'Image') {
+            if (!generationPrompt) throw new Error("Prompt is required for image generation.");
+            const response = await generateImageFromText({ prompt: generationPrompt });
+            result = response.imageDataUri;
+        } else if (type === 'Video') {
+            toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
+            let response;
+            if (imageInput) {
+                response = await generateVideoFromImage({ prompt: prompt || "Animate this image", photoDataUri: imageInput });
+            } else {
+                if (!generationPrompt) throw new Error("Prompt is required for video generation.");
+                response = await generateVideoFromText({ prompt: generationPrompt });
+            }
+            result = response.videoDataUri;
+            toast({ title: "✅ Video generation complete!", description: "The preview will be updated shortly." });
+        } else if (type === 'Audio') {
+            if (!generationPrompt) throw new Error("Prompt is required for audio generation.");
+            const response = await generateAudioFromText({ prompt: generationPrompt });
+            result = response.audioDataUri;
+        }
       }
+
       if (result) {
         onUpdate(id, { output: result });
       }
