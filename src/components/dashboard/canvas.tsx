@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useCallback, useState, useMemo, useRef } from "react";
+import React, { useCallback, useState, useMemo, useRef, useEffect } from "react";
 import ReactFlow, {
   addEdge,
   applyEdgeChanges,
