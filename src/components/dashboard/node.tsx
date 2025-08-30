@@ -37,7 +37,7 @@ import { generateTextFromText } from "@/ai/flows/generate-text-from-text";
 import { generateImageFromText } from "@/ai/flows/generate-image-from-text";
 import { generateVideoFromText } from "@/ai/flows/generate-video-from-text";
 import { generateAudioFromText } from "@/ai/flows/generate-audio-from-text";
-import { generateVideoFromImage } from "@/ai-flows/generate-video-from-image";
+import { generateVideoFromImage } from "@/ai/flows/generate-video-from-image";
 import { generateTextFromImage } from "@/ai/flows/generate-text-from-image";
 import { useToast } from "@/hooks/use-toast";
 import { nodeInfo } from "./node-info";
@@ -462,3 +462,4 @@ function NodeToolbar({
     </div>
   );
 }
+
