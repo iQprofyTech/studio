@@ -168,9 +168,21 @@ export function Node({ id, data, selected }: NodeProps) {
 
 
   return (
-    <div className="group">
+    <div className="group relative">
        <Handle type="target" position={Position.Left} className="!bg-primary !-left-4 !w-3 !h-3" />
-      <Card className={`w-[380px] rounded-2xl shadow-2xl bg-background/50 backdrop-blur-xl border-2 transition-all duration-300 ${selected ? "border-primary/50 shadow-primary/20" : "border-white/10 dark:border-white/5"}`}>
+       <Card 
+        className={cn(
+          "w-[380px] rounded-2xl shadow-2xl bg-background/50 backdrop-blur-xl border-2 transition-all duration-300",
+          selected 
+            ? "border-transparent bg-clip-padding" 
+            : "border-white/10 dark:border-white/5"
+        )}
+        style={selected ? { 
+            backgroundImage: 'linear-gradient(theme(colors.background), theme(colors.background)), linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)))',
+            backgroundOrigin: 'border-box',
+            backgroundClip: 'padding-box, border-box',
+        } : {}}
+       >
         <div className={`handle p-3 flex items-center justify-between cursor-grab border-b border-white/10`}>
           <div className="flex items-center gap-2">
             <Icon className={`w-5 h-5`} style={{ color }}/>
