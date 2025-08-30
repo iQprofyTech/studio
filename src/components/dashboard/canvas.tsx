@@ -120,7 +120,7 @@ export function Canvas() {
       };
       setEdges((eds) => addEdge(newEdge, eds));
     },
-    [nodes, setEdges]
+    [nodes]
   );
 
   const deleteNode = useCallback(
@@ -130,7 +130,7 @@ export function Canvas() {
         eds.filter((edge) => edge.source !== id && edge.target !== id)
       );
     },
-    [setNodes, setEdges] 
+    [] 
   );
 
   const deleteEdge = useCallback((id: string) => {
@@ -146,7 +146,7 @@ export function Canvas() {
         )
       );
     },
-    [setNodes]
+    []
   );
 
   const addNode = useCallback(
@@ -183,18 +183,21 @@ export function Canvas() {
       setNodes((prevNodes) => [...prevNodes, newNode as Node<NodeData>]);
 
       if (sourceNodeId) {
-        const sourceNode = nodes.find(node => node.id === sourceNodeId);
-        if (!sourceNode) return;
-        const newEdge: Edge = {
-          id: `${sourceNodeId}-${newNodeId}`,
-          source: sourceNodeId,
-          target: newNodeId,
-          style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
-        };
-        setEdges(eds => addEdge(newEdge, eds));
+        setNodes(nds => {
+            const sourceNode = nds.find(node => node.id === sourceNodeId);
+            if (!sourceNode) return nds;
+            const newEdge: Edge = {
+              id: `${sourceNodeId}-${newNodeId}`,
+              source: sourceNodeId,
+              target: newNodeId,
+              style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
+            };
+            setEdges(eds => addEdge(newEdge, eds));
+            return nds;
+        });
       }
     },
-    [deleteNode, updateNodeData, setNodes, deleteEdge, nodes]
+    [deleteNode, updateNodeData, deleteEdge]
 );
 
 
@@ -203,7 +206,7 @@ export function Canvas() {
     if (nodes.length === 0) {
       addNode("Image");
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [addNode, nodes.length]);
 
   const nodesWithCallbacks = useMemo(
     () =>
@@ -244,6 +247,7 @@ export function Canvas() {
         onConnectStart={onConnectStart}
         onConnectEnd={onConnectEnd}
         nodeTypes={nodeTypes}
+        onPaneClick={() => setMenu(null)}
         fitView
       >
         <Background gap={40} />
@@ -254,12 +258,13 @@ export function Canvas() {
       <AddNodeToolbar onAddNode={(type) => addNode(type)} />
       {menu && (
         <ContextMenu
-          onClick={() => setMenu(null)}
-          {...menu}
-          onNodeSelect={(nodeType) => {
+          onClick={(nodeType) => {
             const position = screenToFlowPosition({ x: menu.left, y: menu.top });
             addNode(nodeType, position, menu.sourceNodeId);
+            setMenu(null);
           }}
+          top={menu.top}
+          left={menu.left}
         />
       )}
     </div>

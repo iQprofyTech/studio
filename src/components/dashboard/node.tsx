@@ -1,3 +1,4 @@
+
 "use client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,7 +37,7 @@ import { generateTextFromText } from "@/ai/flows/generate-text-from-text";
 import { generateImageFromText } from "@/ai/flows/generate-image-from-text";
 import { generateVideoFromText } from "@/ai/flows/generate-video-from-text";
 import { generateAudioFromText } from "@/ai/flows/generate-audio-from-text";
-import { generateVideoFromImage } from "@/ai/flows/generate-video-from-image";
+import { generateVideoFromImage } from "@/ai-flows/generate-video-from-image";
 import { generateTextFromImage } from "@/ai/flows/generate-text-from-image";
 import { useToast } from "@/hooks/use-toast";
 import { nodeInfo } from "./node-info";
@@ -72,21 +73,19 @@ const mimeTypes: Record<NodeType, string> = {
 function InputHandle({ nodeId, data, isConnected, onDeleteEdge }: { nodeId: string; data: NodeData; isConnected: boolean; onDeleteEdge: (edgeId: string) => void }) {
   const edge = data.edges.find(e => e.target === nodeId);
 
-  if (!isConnected) {
-    return <Handle type="target" position={Position.Left} className="!bg-primary !-left-4 !w-3 !h-3" />;
-  }
-
   return (
-    <div className="relative group/handle">
-      <Handle type="target" position={Position.Left} className="!bg-primary !-left-4 !w-3 !h-3" />
-      <button
-        onClick={() => edge && onDeleteEdge(edge.id)}
-        className="absolute -left-10 top-1/2 -translate-y-1/2 p-1 rounded-full bg-destructive/20 text-destructive opacity-0 group-hover/handle:opacity-100 transition-opacity z-10"
-        aria-label="Delete connection"
-      >
-        <Unplug className="w-3.5 h-3.5" />
-      </button>
-    </div>
+    <>
+      <Handle type="target" position={Position.Left} className={cn("!bg-primary !-left-4 !w-3 !h-3", isConnected && "peer")} />
+      {isConnected && edge && (
+        <button
+          onClick={() => onDeleteEdge(edge.id)}
+          className="absolute -left-10 top-1/2 -translate-y-1/2 p-1 rounded-full bg-destructive/20 text-destructive opacity-0 peer-hover:opacity-100 hover:!opacity-100 transition-opacity z-10"
+          aria-label="Delete connection"
+        >
+          <Unplug className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </>
   );
 }
 
@@ -123,10 +122,16 @@ export function Node({ id, data, selected }: NodeProps) {
             result = response.description;
         } else {
             if (!generationPrompt) {
-              throw new Error("Prompt cannot be empty for Text generation.");
+              if (imageInput) {
+                 const response = await generateTextFromImage({ photoDataUri: imageInput });
+                 result = response.description;
+              } else {
+                throw new Error("Prompt cannot be empty for Text generation.");
+              }
+            } else {
+                const response = await generateTextFromText({ prompt: generationPrompt });
+                result = response.generatedText;
             }
-            const response = await generateTextFromText({ prompt: generationPrompt });
-            result = response.generatedText;
         }
       } else if (type === 'Image') {
           if (!generationPrompt) throw new Error("Prompt is required for image generation.");
@@ -165,6 +170,9 @@ export function Node({ id, data, selected }: NodeProps) {
       if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
           toastTitle = "API Quota Exceeded";
           toastDescription = "You have exceeded your request limit for the AI model. Please check your plan or try again later.";
+      } else if (errorMessage.includes("content filters")) {
+          toastTitle = "Content Generation Blocked";
+          toastDescription = "The generation was blocked by content safety filters. Please modify your prompt and try again.";
       }
 
       toast({
