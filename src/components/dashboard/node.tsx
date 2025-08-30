@@ -29,6 +29,7 @@ import {
   Upload,
   Mic,
   Video,
+  Camera,
 } from "lucide-react";
 import Image from "next/image";
 import type { Node as ReactFlowNode } from 'reactflow';
@@ -46,6 +47,7 @@ import { stitchVideos } from "@/ai/flows/stitch-videos";
 import { transcribeAudio } from "@/ai/flows/transcribe-audio";
 import { useToast } from "@/hooks/use-toast";
 import { nodeInfo } from "./node-info";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 interface NodeProps {
   id: string;
@@ -88,6 +90,7 @@ function InputHandle({ nodeId, data, isConnected, onDeleteEdge }: { nodeId: stri
           isConnected ? "!border-accent" : "!border-muted-foreground/50",
           "peer"
         )}
+        style={isConnected ? { borderColor: '#B555C2' } : {}}
       />
       {isConnected && edge && (
         <button
@@ -109,15 +112,27 @@ export function Node({ id, data, selected }: NodeProps) {
   const color = nodeInfo[type].color;
   const toolbarItems = nodeToolbarConfig[type];
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
+
   
   const isTarget = edges.some(edge => edge.target === id);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      if (type === 'Video' && file.size > 8 * 1024 * 1024) { // 8MB limit for video
+        toast({
+          variant: 'destructive',
+          title: 'File too large',
+          description: 'Video files should not exceed 8MB (around 5-8 seconds).'
+        });
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUri = e.target?.result as string;
@@ -137,7 +152,7 @@ export function Node({ id, data, selected }: NodeProps) {
 
       // Video stitching logic
       const videoInputs = inputNodes.filter(n => n.data.type === 'Video' && n.data.output).map(n => n.data.output as string);
-      if (type === 'Video' && videoInputs.length >= 2 && videoInputs.length <= 12) {
+      if (type === 'Video' && model === 'Video Stitcher' && videoInputs.length >= 2 && videoInputs.length <= 12) {
           if (prompt || output) {
               toast({ variant: "destructive", title: "Invalid Operation", description: "The prompt and output for the target video node must be empty to stitch videos." });
               throw new Error("Prompt and output must be empty for stitching.");
@@ -176,7 +191,7 @@ export function Node({ id, data, selected }: NodeProps) {
             const response = await generateImageFromText({ prompt: generationPrompt });
             result = response.imageDataUri;
         } else if (type === 'Video') {
-            if (!generationPrompt && !imageInput) {
+             if (!generationPrompt && !imageInput) {
                 throw new Error("Prompt or image input is required for video generation.");
             }
             toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
@@ -207,7 +222,7 @@ export function Node({ id, data, selected }: NodeProps) {
       let toastTitle = "Uh oh! Something went wrong.";
       let toastDescription = errorMessage;
 
-      if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+      if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("resource_exhausted")) {
           toastTitle = "API Quota Exceeded";
           toastDescription = "You have exceeded your request limit for the AI model. Please check your plan or try again later.";
       } else if (errorMessage.includes("content filters")) {
@@ -224,7 +239,7 @@ export function Node({ id, data, selected }: NodeProps) {
       setIsLoading(false);
       onUpdate(id, { isGenerating: false });
     }
-  }, [type, prompt, output, id, onUpdate, toast, nodes, edges]);
+  }, [type, prompt, output, id, onUpdate, toast, nodes, edges, model]);
   
   const handleClearOutput = useCallback(() => {
     onUpdate(id, { output: null });
@@ -243,9 +258,11 @@ export function Node({ id, data, selected }: NodeProps) {
   
   const handleCopy = useCallback(() => {
     if (!output) return;
-    navigator.clipboard.writeText(output).then(() => {
-      toast({ title: "Copied to clipboard!" });
-    });
+    if (typeof output === 'string') {
+        navigator.clipboard.writeText(output).then(() => {
+            toast({ title: "Copied to clipboard!" });
+        });
+    }
   }, [output, toast]);
 
 
@@ -317,32 +334,48 @@ export function Node({ id, data, selected }: NodeProps) {
                 </>
               ) : (
                 <div className="text-muted-foreground/50 text-sm p-4 text-center flex flex-col items-center justify-center gap-2">
-                   <p>
-                    {(type === "Image" || type === "Video") 
-                      ? `Preview (${aspectRatio}) will appear here`
-                      : "Preview will appear here"
-                    }
-                   </p>
-                   {selected && (type === "Image" || type === "Video" || type === "Audio") && (
-                     <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                          <Upload className="w-3 h-3 mr-1.5" />
-                          Upload
-                        </Button>
-                        {type === 'Video' && 
-                          <Button variant="outline" size="sm">
-                            <Video className="w-3 h-3 mr-1.5" />
-                            Record
-                          </Button>
-                        }
-                        {type === 'Audio' && 
-                          <Button variant="outline" size="sm">
-                            <Mic className="w-3 h-3 mr-1.5" />
-                            Record
-                          </Button>
-                        }
-                     </div>
-                   )}
+                    {isRecording ? (
+                        <>
+                            <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted />
+                             {hasCameraPermission === false && (
+                                <Alert variant="destructive" className="text-left">
+                                  <AlertTitle>Camera Access Required</AlertTitle>
+                                  <AlertDescription>
+                                    Please allow camera access to use this feature.
+                                  </AlertDescription>
+                                </Alert>
+                            )}
+                        </>
+                    ) : (
+                        <>
+                         <p>
+                            {(type === "Image" || type === "Video") 
+                              ? `Preview (${aspectRatio}) will appear here`
+                              : "Preview will appear here"
+                            }
+                           </p>
+                           {selected && (type === "Image" || type === "Video" || type === "Audio") && (
+                             <div className="flex gap-2">
+                                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                                  <Upload className="w-3 h-3 mr-1.5" />
+                                  Upload
+                                </Button>
+                                {type === 'Video' && 
+                                  <Button variant="outline" size="sm">
+                                    <Camera className="w-3 h-3 mr-1.5" />
+                                    Record
+                                  </Button>
+                                }
+                                {type === 'Audio' && 
+                                  <Button variant="outline" size="sm">
+                                    <Mic className="w-3 h-3 mr-1.5" />
+                                    Record
+                                  </Button>
+                                }
+                             </div>
+                           )}
+                        </>
+                    )}
                 </div>
               )}
           </div>
@@ -363,7 +396,7 @@ export function Node({ id, data, selected }: NodeProps) {
         </CardContent>
 
       </Card>
-      <Handle type="source" position={Position.Right} className="!bg-primary !border-primary !-right-4 !w-3 !h-3 top-1/2 !border-2" />
+      <Handle type="source" position={Position.Right} className="!bg-primary !border-primary !-right-4 !w-3 !h-3 top-1/2 !border-2" style={{ borderColor: '#4BC178'}} />
     </div>
   );
 }
@@ -386,6 +419,7 @@ const modelOptions: Record<NodeType, { name: string; enabled: boolean }[]> = {
     Text: [
         { name: "Gemini 1.5 Pro", enabled: true },
         { name: "Gemini 1.5 Flash", enabled: true },
+        { name: "Audio Transcription", enabled: true },
         { name: "Google AI редактор (Gemini Flash 2.0)", enabled: false },
         { name: "ChatGPT 4.5", enabled: false },
         { name: "ChatGPT 4-o (omni)", enabled: false },
@@ -426,7 +460,6 @@ const modelOptions: Record<NodeType, { name: string; enabled: boolean }[]> = {
     ],
     Audio: [
         { name: "Gemini TTS", enabled: true },
-        { name: "Audio Transcription", enabled: true },
         { name: "SUNO v3.5 (создание музыки)", enabled: false },
         { name: "SUNO v4.0", enabled: false },
     ],
@@ -533,3 +566,5 @@ function NodeToolbar({
     </div>
   );
 }
+
+    
