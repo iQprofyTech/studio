@@ -75,11 +75,11 @@ function InputHandle({ nodeId, data, isConnected, onDeleteEdge }: { nodeId: stri
 
   return (
     <div className="group/handle absolute -left-4 top-1/2 -translate-y-1/2 h-full w-8 flex items-center justify-start">
-      <Handle type="target" position={Position.Left} className={cn("!bg-primary !relative !-left-0 !w-3 !h-3", isConnected && "peer")} />
+      <Handle type="target" position={Position.Left} className={cn("!bg-primary !relative !left-0 !w-3 !h-3", isConnected && "peer")} />
       {isConnected && edge && (
         <button
           onClick={() => onDeleteEdge(edge.id)}
-          className="absolute -left-3 p-1 rounded-full bg-destructive/20 text-destructive opacity-0 peer-hover:opacity-100 hover:!opacity-100 transition-opacity z-10"
+          className="absolute left-0 p-1 rounded-full bg-destructive/20 text-destructive opacity-0 peer-hover:opacity-100 hover:!opacity-100 transition-opacity z-10 -translate-x-full"
           aria-label="Delete connection"
         >
           <Unplug className="w-3.5 h-3.5" />
@@ -132,7 +132,7 @@ export function Node({ id, data, selected }: NodeProps) {
           const response = await generateImageFromText({ prompt: generationPrompt });
           result = response.imageDataUri;
       } else if (type === 'Video') {
-          if (!generationPrompt && !imageInput) {
+          if (!prompt && !imageInput) {
               throw new Error("Prompt or image input is required for video generation.");
           }
           toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
@@ -141,7 +141,7 @@ export function Node({ id, data, selected }: NodeProps) {
               response = await generateVideoFromImage({ prompt: prompt || "Animate this image", photoDataUri: imageInput });
           } else {
               // This case is validated by the check above, so generationPrompt is guaranteed to exist.
-              response = await generateVideoFromText({ prompt: generationPrompt! });
+              response = await generateVideoFromText({ prompt: prompt! });
           }
           result = response.videoDataUri;
           toast({ title: "✅ Video generation complete!", description: "The preview will be updated shortly." });
@@ -288,7 +288,7 @@ export function Node({ id, data, selected }: NodeProps) {
         </CardContent>
 
       </Card>
-      <Handle type="source" position={Position.Right} className="!bg-primary !-right-4 !w-3 !h-3" />
+      <Handle type="source" position={Position.Right} className="!bg-primary !-right-4 !w-3 !h-3 top-1/2" />
     </div>
   );
 }
