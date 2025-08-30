@@ -115,18 +115,22 @@ export function Canvas() {
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
        setMenu(null);
-       const sourceNode = nodes.find(node => node.id === connection.source);
-       if (!sourceNode) return;
+       setNodes(nds => {
+         const sourceNode = nds.find(node => node.id === connection.source);
+         if (!sourceNode) return nds;
 
-       const newEdge: Edge = {
-        ...connection,
-        id: `${connection.source}-${connection.target}`,
-        style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
-        type: 'default'
-       };
-       setEdges((eds) => addEdge(newEdge, eds));
+         const newEdge: Edge = {
+          ...connection,
+          id: `${connection.source}-${connection.target}`,
+          style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
+          type: 'default'
+         };
+         setEdges((eds) => addEdge(newEdge, eds));
+
+         return nds;
+       })
     },
-    [nodes, setEdges]
+    [setNodes, setEdges]
   );
 
   const deleteNode = useCallback(
@@ -191,22 +195,39 @@ export function Canvas() {
       setNodes((prevNodes) => [...prevNodes, newNode as Node<NodeData>]);
 
       if (sourceNodeId) {
-            setEdges(eds => {
-                const sourceNode = nodes.find(node => node.id === sourceNodeId);
-                 if (!sourceNode) return eds;
-                const newEdge: Edge = {
-                    id: `${sourceNodeId}-${newNodeId}`,
-                    source: sourceNodeId,
-                    target: newNodeId,
-                    style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
-                    type: 'default',
-                };
-                return addEdge(newEdge, eds)
-            });
+          setEdges(eds => {
+            const sourceNode = nodes.find(node => node.id === sourceNodeId);
+            if (!sourceNode) {
+                // If the source node is the one we are just adding, it might not be in the `nodes` state yet.
+                // We find it in the setNodes callback instead.
+                setNodes(nds => {
+                     const sourceNodeFromNewState = nds.find(node => node.id === sourceNodeId);
+                     if (!sourceNodeFromNewState) return nds;
+                     const newEdge: Edge = {
+                        id: `${sourceNodeId}-${newNodeId}`,
+                        source: sourceNodeId,
+                        target: newNodeId,
+                        style: { stroke: nodeInfo[sourceNodeFromNewState.data.type].color, strokeWidth: 2.5 },
+                        type: 'default',
+                    };
+                    setEdges(prevEdges => addEdge(newEdge, prevEdges));
+                    return nds;
+                })
+                return eds;
+            }
+              const newEdge: Edge = {
+                  id: `${sourceNodeId}-${newNodeId}`,
+                  source: sourceNodeId,
+                  target: newNodeId,
+                  style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
+                  type: 'default',
+              };
+              return addEdge(newEdge, eds)
+          });
       }
     },
-    [deleteNode, updateNodeData, deleteEdge, screenToFlowPosition, setNodes, setEdges, nodes] // nodes is needed here for onConnect
-);
+    [screenToFlowPosition, deleteNode, updateNodeData, deleteEdge, setNodes, setEdges, nodes]
+  );
 
 
   // Add a default node if canvas is empty
@@ -226,9 +247,9 @@ export function Canvas() {
           onDelete: deleteNode,
           onUpdate: updateNodeData,
           onDeleteEdge: deleteEdge,
-          // Cyclic dependency removed
-          nodes,
-          edges,
+          // Pass nodes and edges for cascading logic
+          nodes: nodes,
+          edges: edges,
         },
       })),
     [nodes, edges, deleteNode, updateNodeData, deleteEdge]
@@ -279,3 +300,5 @@ export function Canvas() {
     </div>
   );
 }
+
+    
