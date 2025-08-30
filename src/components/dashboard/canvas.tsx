@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useCallback, useState, useMemo, useEffect, useRef, MouseEvent as ReactMouseEvent } from "react";
+import React, { useCallback, useState, useMemo, useEffect, useRef } from "react";
 import ReactFlow, {
   addEdge,
   applyEdgeChanges,
@@ -72,25 +72,19 @@ export function Canvas() {
   const [nodes, setNodes] = useState<Node<NodeData>[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { screenToFlowPosition, project } = useReactFlow();
+  const { project } = useReactFlow();
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [menu, setMenu] = useState<ContextMenuData | null>(null);
   const connectingNodeId = useRef<{nodeId: string | null, handleId: string | null}>({ nodeId: null, handleId: null });
   const { toast } = useToast();
 
   const onNodesChange: OnNodesChange = useCallback(
-    (changes) => {
-      setMenu(null);
-      setNodes((nds) => applyNodeChanges(changes, nds))
-    },
+    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
     [setNodes]
   );
 
   const onEdgesChange: OnEdgesChange = useCallback(
-    (changes) => {
-       setMenu(null);
-      setEdges((eds) => applyEdgeChanges(changes, eds))
-    },
+    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
     [setEdges]
   );
   
@@ -98,13 +92,13 @@ export function Canvas() {
     connectingNodeId.current = { nodeId, handleId };
   }, []);
 
-  const onConnectEnd: OnConnectEnd = useCallback(
+ const onConnectEnd: OnConnectEnd = useCallback(
     (event) => {
-        const target = event.target as HTMLElement;
-        if (!connectingNodeId.current.nodeId || !reactFlowWrapper.current) {
+        if (!connectingNodeId.current.nodeId || !reactFlowWrapper.current || !reactFlowInstance) {
             return;
         }
 
+        const target = event.target as HTMLElement;
         const targetIsPane = target.classList.contains('react-flow__pane');
 
         if (targetIsPane && event instanceof MouseEvent) {
@@ -117,12 +111,9 @@ export function Canvas() {
                 sourceHandleId: connectingNodeId.current.handleId,
             });
         }
-        connectingNodeId.current = { nodeId: null, handleId: null };
     },
-    [project]
+    [reactFlowInstance]
 );
-
-
 
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
@@ -184,28 +175,28 @@ export function Canvas() {
   
   const addNode = useCallback(
     (type: NodeType, position?: { x: number; y: number }, sourceNodeId?: string) => {
-      if (nodes.length >= MAX_NODES) {
-        toast({
-          variant: "destructive",
-          title: "Node Limit Reached",
-          description: `You can only have a maximum of ${MAX_NODES} nodes on the canvas.`,
-        });
-        return;
-      }
-      
-      let defaultModel = 'Default';
-      if (type === 'Text') defaultModel = 'Gemini 1.5 Pro';
-      if (type === 'Image') defaultModel = 'Google Imagen 4';
-      if (type === 'Video') defaultModel = 'Google Veo 3';
-      if (type === 'Audio') defaultModel = 'Gemini TTS';
-
-      const newNodeId = `${type}-${Date.now()}`;
-      const pos = position || (reactFlowInstance ? reactFlowInstance.project({
-        x: (reactFlowWrapper.current?.clientWidth || window.innerWidth) / 2,
-        y: (reactFlowWrapper.current?.clientHeight || window.innerHeight) / 3,
-      }) : { x: 0, y: 0});
-      
       setNodes((nds) => {
+         if (nds.length >= MAX_NODES) {
+          toast({
+            variant: "destructive",
+            title: "Node Limit Reached",
+            description: `You can only have a maximum of ${MAX_NODES} nodes on the canvas.`,
+          });
+          return nds;
+        }
+
+        let defaultModel = 'Default';
+        if (type === 'Text') defaultModel = 'Gemini 1.5 Pro';
+        if (type === 'Image') defaultModel = 'Google Imagen 4';
+        if (type === 'Video') defaultModel = 'Google Veo 3';
+        if (type === 'Audio') defaultModel = 'Gemini TTS';
+
+        const newNodeId = `${type}-${Date.now()}`;
+        const pos = position || (reactFlowInstance ? reactFlowInstance.project({
+          x: (reactFlowWrapper.current?.clientWidth || window.innerWidth) / 2,
+          y: (reactFlowWrapper.current?.clientHeight || window.innerHeight) / 3,
+        }) : { x: 0, y: 0});
+        
         const newNode: Node<Omit<NodeData, 'nodes' | 'edges'>> = {
             id: newNodeId,
             type: 'custom',
@@ -242,7 +233,7 @@ export function Canvas() {
         return [...nds, newNode as Node<NodeData>];
       });
     },
-    [deleteNode, updateNodeData, deleteEdge, toast, setEdges, nodes.length, reactFlowInstance]
+    [deleteNode, updateNodeData, deleteEdge, toast, setEdges, reactFlowInstance]
   );
 
 
@@ -251,7 +242,7 @@ export function Canvas() {
     if (nodes.length === 0 && reactFlowInstance) {
       addNode("Image");
     }
-  }, [nodes.length, reactFlowInstance]); // Removed addNode from dependencies
+  }, [nodes.length, reactFlowInstance, addNode]);
 
   const nodesWithCallbacks = useMemo(
     () =>
