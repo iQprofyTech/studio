@@ -102,7 +102,7 @@ export function Canvas() {
         });
       }
     },
-    []
+    [screenToFlowPosition]
   );
 
 
@@ -116,6 +116,7 @@ export function Canvas() {
         ...connection,
         id: `${connection.source}-${connection.target}`,
         style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
+        type: 'default'
       };
       setEdges((eds) => addEdge(newEdge, eds));
     },
@@ -156,11 +157,12 @@ export function Canvas() {
       if (type === 'Video') defaultModel = 'Google Veo 3';
       if (type === 'Audio') defaultModel = 'Gemini TTS';
 
-      const newNodeId = `${Date.now()}`;
-      const pos = position || {
-        x: Math.random() * (window.innerWidth / 2),
-        y: Math.random() * (window.innerHeight / 2),
-      };
+      const newNodeId = `${type}-${Date.now()}`;
+      const pos = position || screenToFlowPosition({
+        x: (reactFlowWrapper.current?.clientWidth || window.innerWidth) / 2,
+        y: (reactFlowWrapper.current?.clientHeight || window.innerHeight) / 2,
+      });
+
 
       const newNode: Node<Omit<NodeData, 'nodes' | 'edges'>> = {
         id: newNodeId,
@@ -189,11 +191,12 @@ export function Canvas() {
               source: sourceNodeId,
               target: newNodeId,
               style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
+              type: 'default',
             };
             setEdges(eds => addEdge(newEdge, eds));
       }
     },
-    [deleteNode, updateNodeData, deleteEdge, nodes]
+    [deleteNode, updateNodeData, deleteEdge, nodes, screenToFlowPosition]
 );
 
 
