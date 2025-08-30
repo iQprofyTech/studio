@@ -134,15 +134,15 @@ export function Node({ id, data, selected }: NodeProps) {
           result = response.imageDataUri;
       } else if (type === 'Video') {
           if (!generationPrompt && !imageInput) {
-              throw new Error(`Prompt or image input cannot be empty for ${type} generation.`);
+              throw new Error("Prompt or image input is required for video generation.");
           }
           toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
           let response;
           if (imageInput) {
               response = await generateVideoFromImage({ prompt: prompt || "Animate this image", photoDataUri: imageInput });
           } else {
-              if (!generationPrompt) throw new Error("Prompt is required for video generation.");
-              response = await generateVideoFromText({ prompt: generationPrompt });
+              // This case is validated by the check above, so generationPrompt is guaranteed to exist.
+              response = await generateVideoFromText({ prompt: generationPrompt! });
           }
           result = response.videoDataUri;
           toast({ title: "✅ Video generation complete!", description: "The preview will be updated shortly." });
@@ -454,5 +454,3 @@ function NodeToolbar({
     </div>
   );
 }
-
-    
