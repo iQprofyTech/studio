@@ -99,17 +99,16 @@ export function Canvas() {
 
   const onConnectEnd: OnConnectEnd = useCallback(
     (event) => {
-      if (!connectingNodeId.current || !reactFlowInstance) return;
-
+      if (!connectingNodeId.current || !reactFlowWrapper.current) return;
+  
       const targetIsPane = (event.target as HTMLElement).classList.contains(
         'react-flow__pane'
       );
-
+  
       if (targetIsPane) {
-        // We need to remove the wrapper bounds, in order to get the correct position
-        const { top, left } = (reactFlowWrapper.current as HTMLDivElement).getBoundingClientRect();
-        const mouseEvent = event as unknown as MouseEvent;
-        
+        const { top, left } = reactFlowWrapper.current.getBoundingClientRect();
+        const mouseEvent = event as MouseEvent;
+  
         setMenu({
           top: mouseEvent.clientY - top,
           left: mouseEvent.clientX - left,
@@ -310,3 +309,5 @@ export function Canvas() {
     </div>
   );
 }
+
+    
