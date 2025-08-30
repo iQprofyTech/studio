@@ -74,8 +74,8 @@ function InputHandle({ nodeId, data, isConnected, onDeleteEdge }: { nodeId: stri
   const edge = data.edges.find(e => e.target === nodeId);
 
   return (
-    <div className="group/handle absolute -left-4 top-1/2 -translate-y-1/2 h-full w-8 flex items-center justify-start">
-      <Handle type="target" position={Position.Left} className={cn("!bg-primary !relative !left-0 !w-3 !h-3", isConnected && "peer")} />
+    <div className="group/handle absolute -left-4 top-1/2 -translate-y-1/2 h-full w-4 flex items-center justify-start">
+      <Handle type="target" position={Position.Left} className={cn("!bg-accent !w-3 !h-3", isConnected && "peer")} />
       {isConnected && edge && (
         <button
           onClick={() => onDeleteEdge(edge.id)}
@@ -103,19 +103,16 @@ export function Node({ id, data, selected }: NodeProps) {
 
   const handleGenerate = useCallback(async () => {
     setIsLoading(true);
-    onUpdate(id, { output: null, isGenerating: true }); // Clear previous output and set generating state
+    onUpdate(id, { output: null, isGenerating: true });
     try {
       let result;
-
-      // Find the input node if any
       const inputEdge = edges.find(edge => edge.target === id);
       const inputNode = inputEdge ? nodes.find(node => node.id === inputEdge.source) : null;
-      const inputNodeData = inputNode?.data as NodeData | undefined;
+      const inputNodeData = inputNode?.data;
       
       const generationPrompt = inputNodeData?.type === 'Text' && inputNodeData.output ? inputNodeData.output : prompt;
       const imageInput = inputNodeData?.type === 'Image' && inputNodeData.output ? inputNodeData.output : null;
-
-
+      
       if (type === 'Text') {
         if (imageInput) {
             const response = await generateTextFromImage({ photoDataUri: imageInput });
@@ -140,7 +137,6 @@ export function Node({ id, data, selected }: NodeProps) {
           if (imageInput) {
               response = await generateVideoFromImage({ prompt: prompt || "Animate this image", photoDataUri: imageInput });
           } else {
-              // This case is validated by the check above, so generationPrompt is guaranteed to exist.
               response = await generateVideoFromText({ prompt: prompt! });
           }
           result = response.videoDataUri;
@@ -458,5 +454,7 @@ function NodeToolbar({
 }
 
 
+
+    
 
     
