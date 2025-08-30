@@ -92,7 +92,7 @@ export function Canvas() {
       );
 
       if (targetIsPane && connectingNodeId.current) {
-        const mouseEvent = event as MouseEvent;
+        const mouseEvent = event as unknown as MouseEvent;
         const { top, left } = (reactFlowWrapper.current as HTMLDivElement).getBoundingClientRect();
         
         setMenu({
@@ -217,8 +217,9 @@ export function Canvas() {
           onDelete: deleteNode,
           onUpdate: updateNodeData,
           onDeleteEdge: deleteEdge,
-          nodes, // Pass all nodes
-          edges, // Pass all edges
+          // Cyclic dependency removed
+          nodes,
+          edges,
         },
       })),
     [nodes, edges, deleteNode, updateNodeData, deleteEdge]
