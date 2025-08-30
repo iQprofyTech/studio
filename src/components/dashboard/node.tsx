@@ -165,7 +165,7 @@ export function Node({ id, data, selected }: NodeProps) {
         // Standard generation logic
         const primaryInputNode = inputNodes[0]?.data;
         const generationPrompt = primaryInputNode?.type === 'Text' && primaryInputNode.output ? primaryInputNode.output : prompt;
-        const imageInput = primaryInputNode?.type === 'Image' && primaryInputNode.output ? primaryInputNode.output : null;
+        const imageInput = (primaryInputNode?.type === 'Image' && primaryInputNode.output) ? primaryInputNode.output : (type === 'Image' && output) ? output : null;
         const audioInput = primaryInputNode?.type === 'Audio' && primaryInputNode.output ? primaryInputNode.output : null;
         
         if (type === 'Text') {
@@ -366,6 +366,12 @@ export function Node({ id, data, selected }: NodeProps) {
                                     Record
                                   </Button>
                                 }
+                                 {type === 'Video' && 
+                                  <Button variant="outline" size="sm">
+                                    <Camera className="w-3 h-3 mr-1.5" />
+                                    Record
+                                  </Button>
+                                }
                              </div>
                            )}
                         </>
@@ -560,3 +566,5 @@ function NodeToolbar({
     </div>
   );
 }
+
+    
