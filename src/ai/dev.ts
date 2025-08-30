@@ -1,3 +1,4 @@
+'use server';
 import { config } from 'dotenv';
 config();
 
@@ -8,3 +9,5 @@ import '@/ai/flows/generate-text-from-text.ts';
 import '@/ai/flows/generate-image-from-text.ts';
 import '@/ai/flows/generate-video-from-text.ts';
 import '@/ai/flows/generate-audio-from-text.ts';
+import '@/ai/flows/stitch-videos.ts';
+import '@/ai/flows/transcribe-audio.ts';

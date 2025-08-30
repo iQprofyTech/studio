@@ -25,6 +25,7 @@ import { AddNodeToolbar } from "./add-node-toolbar";
 import { Node as CustomNode } from "./node";
 import { nodeInfo } from "./node-info";
 import { ContextMenu } from "./context-menu";
+import { useToast } from "@/hooks/use-toast";
 
 export type NodeType = "Text" | "Image" | "Video" | "Audio";
 
@@ -48,6 +49,9 @@ export interface NodeData {
   edges: Edge[];
 }
 
+const MAX_NODES = 144;
+const MAX_INCOMING_CONNECTIONS = 12;
+
 const initialNodes: Node<NodeData>[] = [];
 
 const initialEdges: Edge[] = [];
@@ -69,7 +73,7 @@ export function Canvas() {
   const { screenToFlowPosition } = useReactFlow();
   const [menu, setMenu] = useState<ContextMenuData | null>(null);
   const connectingNodeId = useRef<string | null>(null);
-
+  const { toast } = useToast();
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
@@ -114,7 +118,18 @@ export function Canvas() {
 
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
-       setMenu(null);
+      setMenu(null);
+
+      const incomingEdges = edges.filter(e => e.target === connection.target);
+      if (incomingEdges.length >= MAX_INCOMING_CONNECTIONS) {
+        toast({
+          variant: "destructive",
+          title: "Connection Limit Exceeded",
+          description: `A node can have a maximum of ${MAX_INCOMING_CONNECTIONS} incoming connections.`,
+        });
+        return;
+      }
+      
        setNodes(nds => {
          const sourceNode = nds.find(node => node.id === connection.source);
          if (!sourceNode) return nds;
@@ -130,7 +145,7 @@ export function Canvas() {
          return nds;
        })
     },
-    [setNodes, setEdges]
+    [edges, toast, setNodes, setEdges]
   );
 
   const deleteNode = useCallback(
@@ -161,6 +176,15 @@ export function Canvas() {
   
   const addNode = useCallback(
     (type: NodeType, position?: { x: number; y: number }, sourceNodeId?: string) => {
+      if (nodes.length >= MAX_NODES) {
+        toast({
+          variant: "destructive",
+          title: "Node Limit Reached",
+          description: `You can only have a maximum of ${MAX_NODES} nodes on the canvas.`,
+        });
+        return;
+      }
+
       let defaultModel = 'Default';
       if (type === 'Text') defaultModel = 'Gemini 1.5 Pro';
       if (type === 'Image') defaultModel = 'Google Imagen 4';
@@ -172,7 +196,6 @@ export function Canvas() {
         x: (reactFlowWrapper.current?.clientWidth || window.innerWidth) / 2,
         y: (reactFlowWrapper.current?.clientHeight || window.innerHeight) / 2,
       });
-
 
       const newNode: Node<Omit<NodeData, 'nodes' | 'edges'>> = {
         id: newNodeId,
@@ -195,38 +218,22 @@ export function Canvas() {
       setNodes((prevNodes) => [...prevNodes, newNode as Node<NodeData>]);
 
       if (sourceNodeId) {
-          setEdges(eds => {
-            const sourceNode = nodes.find(node => node.id === sourceNodeId);
-            if (!sourceNode) {
-                // If the source node is the one we are just adding, it might not be in the `nodes` state yet.
-                // We find it in the setNodes callback instead.
-                setNodes(nds => {
-                     const sourceNodeFromNewState = nds.find(node => node.id === sourceNodeId);
-                     if (!sourceNodeFromNewState) return nds;
-                     const newEdge: Edge = {
-                        id: `${sourceNodeId}-${newNodeId}`,
-                        source: sourceNodeId,
-                        target: newNodeId,
-                        style: { stroke: nodeInfo[sourceNodeFromNewState.data.type].color, strokeWidth: 2.5 },
-                        type: 'default',
-                    };
-                    setEdges(prevEdges => addEdge(newEdge, prevEdges));
-                    return nds;
-                })
-                return eds;
-            }
-              const newEdge: Edge = {
-                  id: `${sourceNodeId}-${newNodeId}`,
-                  source: sourceNodeId,
-                  target: newNodeId,
-                  style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
-                  type: 'default',
-              };
-              return addEdge(newEdge, eds)
-          });
+          const sourceNode = nodes.find(node => node.id === sourceNodeId);
+          if (!sourceNode) {
+              console.error("Could not find source node for new connection");
+              return;
+          }
+          const newEdge: Edge = {
+              id: `${sourceNodeId}-${newNodeId}`,
+              source: sourceNodeId,
+              target: newNodeId,
+              style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
+              type: 'default',
+          };
+          setEdges(prevEdges => addEdge(newEdge, prevEdges));
       }
     },
-    [screenToFlowPosition, deleteNode, updateNodeData, deleteEdge, setNodes, setEdges, nodes]
+    [screenToFlowPosition, deleteNode, updateNodeData, deleteEdge, nodes, toast]
   );
 
 
@@ -235,7 +242,7 @@ export function Canvas() {
     if (nodes.length === 0) {
       addNode("Image");
     }
-  }, [addNode, nodes.length]);
+  }, [nodes.length]);
 
   const nodesWithCallbacks = useMemo(
     () =>
@@ -243,16 +250,11 @@ export function Canvas() {
         ...node,
         data: {
           ...node.data,
-          id: node.id,
-          onDelete: deleteNode,
-          onUpdate: updateNodeData,
-          onDeleteEdge: deleteEdge,
-          // Pass nodes and edges for cascading logic
           nodes: nodes,
           edges: edges,
         },
       })),
-    [nodes, edges, deleteNode, updateNodeData, deleteEdge]
+    [nodes, edges]
   );
 
  const animatedEdges = useMemo(() => {
@@ -300,5 +302,3 @@ export function Canvas() {
     </div>
   );
 }
-
-    

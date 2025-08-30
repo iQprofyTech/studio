@@ -26,19 +26,24 @@ import {
   Download,
   XCircle,
   Unplug,
+  Upload,
+  Mic,
+  Video,
 } from "lucide-react";
 import Image from "next/image";
 import type { Node as ReactFlowNode } from 'reactflow';
 import type { NodeData, NodeType } from "./canvas";
 import { Handle, Position } from "reactflow";
 import { cn } from "@/lib/utils";
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { generateTextFromText } from "@/ai/flows/generate-text-from-text";
 import { generateImageFromText } from "@/ai/flows/generate-image-from-text";
 import { generateVideoFromText } from "@/ai/flows/generate-video-from-text";
 import { generateAudioFromText } from "@/ai/flows/generate-audio-from-text";
 import { generateVideoFromImage } from "@/ai/flows/generate-video-from-image";
 import { generateTextFromImage } from "@/ai/flows/generate-text-from-image";
+import { stitchVideos } from "@/ai/flows/stitch-videos";
+import { transcribeAudio } from "@/ai/flows/transcribe-audio";
 import { useToast } from "@/hooks/use-toast";
 import { nodeInfo } from "./node-info";
 
@@ -74,22 +79,26 @@ function InputHandle({ nodeId, data, isConnected, onDeleteEdge }: { nodeId: stri
   const edge = data.edges.find(e => e.target === nodeId);
 
   return (
-      <div className="group/handle absolute -left-4 top-1/2 -translate-y-1/2 h-full w-4 flex items-center justify-start">
-          <Handle
-              type="target"
-              position={Position.Left}
-              className={cn("!w-3 !h-3 !border-2 !bg-background", isConnected ? "!border-accent" : "!border-muted-foreground/50", "peer")}
-          />
-          {isConnected && edge && (
-              <button
-                  onClick={() => onDeleteEdge(edge.id)}
-                  className="absolute left-0 p-1 rounded-full bg-destructive/20 text-destructive opacity-0 peer-hover:opacity-100 hover:!opacity-100 transition-opacity z-10 -translate-x-full"
-                  aria-label="Delete connection"
-              >
-                  <Unplug className="w-3.5 h-3.5" />
-              </button>
-          )}
-      </div>
+    <div className="group/handle absolute -left-4 top-1/2 -translate-y-1/2 h-full w-4 flex items-center justify-start">
+      <Handle
+        type="target"
+        position={Position.Left}
+        className={cn(
+          "!w-3 !h-3 !border-2 !bg-background transition-colors",
+          isConnected ? "!border-accent" : "!border-muted-foreground/50",
+          "peer"
+        )}
+      />
+      {isConnected && edge && (
+        <button
+          onClick={() => onDeleteEdge(edge.id)}
+          className="absolute left-0 p-1 rounded-full bg-destructive/20 text-destructive opacity-0 peer-hover:opacity-100 hover:!opacity-100 transition-opacity z-10 -translate-x-full"
+          aria-label="Delete connection"
+        >
+          <Unplug className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </div>
   );
 }
 
@@ -99,60 +108,93 @@ export function Node({ id, data, selected }: NodeProps) {
   const Icon = nodeInfo[type].icon;
   const color = nodeInfo[type].color;
   const toolbarItems = nodeToolbarConfig[type];
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   
   const isTarget = edges.some(edge => edge.target === id);
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUri = e.target?.result as string;
+        onUpdate(id, { output: dataUri, prompt: file.name });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleGenerate = useCallback(async () => {
     setIsLoading(true);
     onUpdate(id, { output: null, isGenerating: true });
     try {
       let result;
-      const inputEdge = edges.find(edge => edge.target === id);
-      const inputNode = inputEdge ? nodes.find(node => node.id === inputEdge.source) : null;
-      const inputNodeData = inputNode?.data;
-      
-      const generationPrompt = inputNodeData?.type === 'Text' && inputNodeData.output ? inputNodeData.output : prompt;
-      const imageInput = inputNodeData?.type === 'Image' && inputNodeData.output ? inputNodeData.output : null;
-      
-      if (type === 'Text') {
-        if (imageInput) {
-            const response = await generateTextFromImage({ photoDataUri: imageInput });
-            result = response.description;
-        } else {
-            if (!generationPrompt) {
-               throw new Error("Prompt cannot be empty for Text generation.");
-            }
-            const response = await generateTextFromText({ prompt: generationPrompt });
-            result = response.generatedText;
-        }
-      } else if (type === 'Image') {
-          if (!generationPrompt) {
-            throw new Error("Prompt is required for image generation.");
+      const inputEdges = edges.filter(edge => edge.target === id);
+      const inputNodes = inputEdges.map(edge => nodes.find(node => node.id === edge.source)).filter(Boolean) as ReactFlowNode<NodeData>[];
+
+      // Video stitching logic
+      const videoInputs = inputNodes.filter(n => n.data.type === 'Video' && n.data.output).map(n => n.data.output as string);
+      if (type === 'Video' && videoInputs.length >= 2 && videoInputs.length <= 12) {
+          if (prompt || output) {
+              toast({ variant: "destructive", title: "Invalid Operation", description: "The prompt and output for the target video node must be empty to stitch videos." });
+              throw new Error("Prompt and output must be empty for stitching.");
           }
-          const response = await generateImageFromText({ prompt: generationPrompt });
-          result = response.imageDataUri;
-      } else if (type === 'Video') {
-          if (!generationPrompt && !imageInput) {
-              throw new Error("Prompt or image input is required for video generation.");
-          }
-          toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
-          let response;
-          if (imageInput) {
-              response = await generateVideoFromImage({ prompt: prompt || "Animate this image", photoDataUri: imageInput });
-          } else {
-              response = await generateVideoFromText({ prompt: generationPrompt! });
-          }
+          toast({ title: "🎬 Video stitching started...", description: `Stitching ${videoInputs.length} videos. This may take a moment.` });
+          const response = await stitchVideos({ videoDataUris: videoInputs });
           result = response.videoDataUri;
-          toast({ title: "✅ Video generation complete!", description: "The preview will be updated shortly." });
-      } else if (type === 'Audio') {
-          if (!generationPrompt) {
-             throw new Error("Prompt is required for audio generation.");
+          toast({ title: "✅ Video stitching complete!" });
+      } else {
+        // Standard generation logic
+        const primaryInputNode = inputNodes[0]?.data;
+        const generationPrompt = primaryInputNode?.type === 'Text' && primaryInputNode.output ? primaryInputNode.output : prompt;
+        const imageInput = primaryInputNode?.type === 'Image' && primaryInputNode.output ? primaryInputNode.output : null;
+        const audioInput = primaryInputNode?.type === 'Audio' && primaryInputNode.output ? primaryInputNode.output : null;
+        
+        if (type === 'Text') {
+          if (imageInput) {
+              const response = await generateTextFromImage({ photoDataUri: imageInput });
+              result = response.description;
+          } else if (audioInput) {
+              toast({ title: "🎤 Transcribing audio...", description: "This may take a moment." });
+              const response = await transcribeAudio({ audioDataUri: audioInput });
+              result = response.transcript;
+              toast({ title: "✅ Transcription complete!" });
+          } else {
+              if (!generationPrompt) {
+                 throw new Error("Prompt cannot be empty for Text generation.");
+              }
+              const response = await generateTextFromText({ prompt: generationPrompt });
+              result = response.generatedText;
           }
-          const response = await generateAudioFromText({ prompt: generationPrompt });
-          result = response.audioDataUri;
+        } else if (type === 'Image') {
+            if (!generationPrompt) {
+              throw new Error("Prompt is required for image generation.");
+            }
+            const response = await generateImageFromText({ prompt: generationPrompt });
+            result = response.imageDataUri;
+        } else if (type === 'Video') {
+            if (!generationPrompt && !imageInput) {
+                throw new Error("Prompt or image input is required for video generation.");
+            }
+            toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
+            let response;
+            if (imageInput) {
+                response = await generateVideoFromImage({ prompt: prompt || "Animate this image", photoDataUri: imageInput });
+            } else {
+                response = await generateVideoFromText({ prompt: generationPrompt! });
+            }
+            result = response.videoDataUri;
+            toast({ title: "✅ Video generation complete!", description: "The preview will be updated shortly." });
+        } else if (type === 'Audio') {
+            if (!generationPrompt) {
+               throw new Error("Prompt is required for audio generation.");
+            }
+            const response = await generateAudioFromText({ prompt: generationPrompt });
+            result = response.audioDataUri;
+        }
       }
       
       if (result) {
@@ -182,7 +224,7 @@ export function Node({ id, data, selected }: NodeProps) {
       setIsLoading(false);
       onUpdate(id, { isGenerating: false });
     }
-  }, [type, prompt, id, onUpdate, toast, nodes, edges]);
+  }, [type, prompt, output, id, onUpdate, toast, nodes, edges]);
   
   const handleClearOutput = useCallback(() => {
     onUpdate(id, { output: null });
@@ -242,6 +284,13 @@ export function Node({ id, data, selected }: NodeProps) {
         </div>
         
         <CardContent className="p-3 space-y-3">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            className="hidden"
+            accept={type === 'Image' ? 'image/*' : type === 'Video' ? 'video/mp4,video/quicktime' : 'audio/*'}
+          />
           <div className={cn("bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden relative group/preview", aspectRatios[aspectRatio] || "aspect-square")}>
              {isLoading && (
                 <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-10">
@@ -267,11 +316,33 @@ export function Node({ id, data, selected }: NodeProps) {
                   </div>
                 </>
               ) : (
-                <div className="text-muted-foreground/50 text-sm p-4 text-center">
-                   {(type === "Image" || type === "Video") 
+                <div className="text-muted-foreground/50 text-sm p-4 text-center flex flex-col items-center justify-center gap-2">
+                   <p>
+                    {(type === "Image" || type === "Video") 
                       ? `Preview (${aspectRatio}) will appear here`
                       : "Preview will appear here"
-                  }
+                    }
+                   </p>
+                   {selected && (type === "Image" || type === "Video" || type === "Audio") && (
+                     <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                          <Upload className="w-3 h-3 mr-1.5" />
+                          Upload
+                        </Button>
+                        {type === 'Video' && 
+                          <Button variant="outline" size="sm">
+                            <Video className="w-3 h-3 mr-1.5" />
+                            Record
+                          </Button>
+                        }
+                        {type === 'Audio' && 
+                          <Button variant="outline" size="sm">
+                            <Mic className="w-3 h-3 mr-1.5" />
+                            Record
+                          </Button>
+                        }
+                     </div>
+                   )}
                 </div>
               )}
           </div>
@@ -338,6 +409,7 @@ const modelOptions: Record<NodeType, { name: string; enabled: boolean }[]> = {
     Video: [
         { name: "Google Veo 3", enabled: true },
         { name: "Google Veo 2", enabled: true },
+        { name: "Video Stitcher", enabled: true },
         { name: "SORA", enabled: false },
         { name: "RunWay: Gen-3", enabled: false },
         { name: "RunWay Gen-4", enabled: false },
@@ -354,6 +426,7 @@ const modelOptions: Record<NodeType, { name: string; enabled: boolean }[]> = {
     ],
     Audio: [
         { name: "Gemini TTS", enabled: true },
+        { name: "Audio Transcription", enabled: true },
         { name: "SUNO v3.5 (создание музыки)", enabled: false },
         { name: "SUNO v4.0", enabled: false },
     ],
@@ -460,9 +533,3 @@ function NodeToolbar({
     </div>
   );
 }
-
-
-
-    
-
-    
