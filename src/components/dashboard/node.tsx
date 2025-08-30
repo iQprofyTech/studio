@@ -123,10 +123,20 @@ export function Node({ id, data, selected }: NodeProps) {
       }
     } catch (error) {
       console.error("Generation failed:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+      
+      let toastTitle = "Uh oh! Something went wrong.";
+      let toastDescription = errorMessage;
+
+      if (errorMessage.includes("429") || errorMessage.includes("RESOURCE_EXHAUSTED")) {
+          toastTitle = "API Quota Exceeded";
+          toastDescription = "You have exceeded your request limit for the AI model. Please check your plan or try again later.";
+      }
+
       toast({
         variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: error instanceof Error ? error.message : "An unknown error occurred.",
+        title: toastTitle,
+        description: toastDescription,
       });
     } finally {
       setIsLoading(false);
