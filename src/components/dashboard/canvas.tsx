@@ -240,7 +240,8 @@ export function Canvas() {
     if (nodes.length === 0 && reactFlowInstance) {
       addNode("Image");
     }
-  }, [nodes.length, reactFlowInstance, addNode]);
+  }, [reactFlowInstance, nodes.length, addNode]);
+
 
   const nodesWithCallbacks = useMemo(
     () =>
