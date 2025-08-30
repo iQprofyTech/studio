@@ -18,6 +18,7 @@ import ReactFlow, {
   useReactFlow,
   OnConnectEnd,
   OnConnectStart,
+  ReactFlowInstance,
 } from "reactflow";
 import "reactflow/dist/style.css";
 
@@ -70,7 +71,8 @@ export function Canvas() {
   const [nodes, setNodes] = useState<Node<NodeData>[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { screenToFlowPosition, project } = useReactFlow();
+  const { screenToFlowPosition } = useReactFlow();
+  const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [menu, setMenu] = useState<ContextMenuData | null>(null);
   const connectingNodeId = useRef<string | null>(null);
   const { toast } = useToast();
@@ -97,7 +99,7 @@ export function Canvas() {
 
   const onConnectEnd: OnConnectEnd = useCallback(
     (event) => {
-      if (!connectingNodeId.current) return;
+      if (!connectingNodeId.current || !reactFlowInstance) return;
 
       const targetIsPane = (event.target as HTMLElement).classList.contains(
         'react-flow__pane'
@@ -107,14 +109,16 @@ export function Canvas() {
         // We need to remove the wrapper bounds, in order to get the correct position
         const { top, left } = (reactFlowWrapper.current as HTMLDivElement).getBoundingClientRect();
         const mouseEvent = event as unknown as MouseEvent;
+        
         setMenu({
           top: mouseEvent.clientY - top,
           left: mouseEvent.clientX - left,
           sourceNodeId: connectingNodeId.current,
         });
       }
+      connectingNodeId.current = null;
     },
-    [project]
+    [reactFlowInstance]
   );
 
 
@@ -236,16 +240,16 @@ export function Canvas() {
         return [...nds, newNode as Node<NodeData>];
       });
     },
-    [screenToFlowPosition, deleteNode, updateNodeData, deleteEdge, toast]
+    [screenToFlowPosition, deleteNode, updateNodeData, deleteEdge, toast, setEdges]
   );
 
 
   // Add a default node if canvas is empty
   useEffect(() => {
-    if (nodes.length === 0) {
+    if (nodes.length === 0 && reactFlowInstance) {
       addNode("Image");
     }
-  }, [nodes.length, addNode]);
+  }, [nodes.length, addNode, reactFlowInstance]);
 
   const nodesWithCallbacks = useMemo(
     () =>
@@ -283,6 +287,7 @@ export function Canvas() {
         onConnectEnd={onConnectEnd}
         nodeTypes={nodeTypes}
         onPaneClick={() => setMenu(null)}
+        onInit={setReactFlowInstance}
         fitView
       >
         <Background gap={40} />
