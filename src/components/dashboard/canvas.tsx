@@ -77,7 +77,7 @@ export function Canvas() {
       };
       setEdges((eds) => addEdge(newEdge, eds));
     },
-    [nodes]
+    [nodes, setEdges]
   );
 
   const deleteNode = useCallback(
@@ -87,7 +87,7 @@ export function Canvas() {
         eds.filter((edge) => edge.source !== id && edge.target !== id)
       );
     },
-    [] 
+    [setNodes, setEdges] 
   );
 
   const updateNodeData = useCallback(
@@ -98,7 +98,7 @@ export function Canvas() {
         )
       );
     },
-    []
+    [setNodes]
   );
 
  const addNode = useCallback(
@@ -131,7 +131,7 @@ export function Canvas() {
       };
       setNodes((prevNodes) => [...prevNodes, newNode as Node<NodeData>]);
     },
-    [deleteNode, updateNodeData]
+    [deleteNode, updateNodeData, setNodes]
   );
 
   // Add a default node if canvas is empty
