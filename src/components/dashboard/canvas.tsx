@@ -72,12 +72,18 @@ export function Canvas() {
 
 
   const onNodesChange: OnNodesChange = useCallback(
-    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    (changes) => {
+      setMenu(null);
+      setNodes((nds) => applyNodeChanges(changes, nds))
+    },
     [setNodes]
   );
 
   const onEdgesChange: OnEdgesChange = useCallback(
-    (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
+    (changes) => {
+       setMenu(null);
+      setEdges((eds) => applyEdgeChanges(changes, eds))
+    },
     [setEdges]
   );
   
@@ -109,16 +115,16 @@ export function Canvas() {
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
        setMenu(null);
-      const sourceNode = nodes.find(node => node.id === connection.source);
-      if (!sourceNode) return;
+       const sourceNode = nodes.find(node => node.id === connection.source);
+       if (!sourceNode) return;
 
-      const newEdge: Edge = {
+       const newEdge: Edge = {
         ...connection,
         id: `${connection.source}-${connection.target}`,
         style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
         type: 'default'
-      };
-      setEdges((eds) => addEdge(newEdge, eds));
+       };
+       setEdges((eds) => addEdge(newEdge, eds));
     },
     [nodes, setEdges]
   );
@@ -148,7 +154,7 @@ export function Canvas() {
     },
     [setNodes]
   );
-
+  
   const addNode = useCallback(
     (type: NodeType, position?: { x: number; y: number }, sourceNodeId?: string) => {
       let defaultModel = 'Default';
@@ -181,22 +187,25 @@ export function Canvas() {
           onDeleteEdge: deleteEdge,
         },
       };
+      
       setNodes((prevNodes) => [...prevNodes, newNode as Node<NodeData>]);
 
       if (sourceNodeId) {
-            const sourceNode = nodes.find(node => node.id === sourceNodeId);
-            if (!sourceNode) return;
-            const newEdge: Edge = {
-              id: `${sourceNodeId}-${newNodeId}`,
-              source: sourceNodeId,
-              target: newNodeId,
-              style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
-              type: 'default',
-            };
-            setEdges(eds => addEdge(newEdge, eds));
+            setEdges(eds => {
+                const sourceNode = nodes.find(node => node.id === sourceNodeId);
+                 if (!sourceNode) return eds;
+                const newEdge: Edge = {
+                    id: `${sourceNodeId}-${newNodeId}`,
+                    source: sourceNodeId,
+                    target: newNodeId,
+                    style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
+                    type: 'default',
+                };
+                return addEdge(newEdge, eds)
+            });
       }
     },
-    [deleteNode, updateNodeData, deleteEdge, nodes, screenToFlowPosition]
+    [deleteNode, updateNodeData, deleteEdge, screenToFlowPosition, setNodes, setEdges, nodes] // nodes is needed here for onConnect
 );
 
 
