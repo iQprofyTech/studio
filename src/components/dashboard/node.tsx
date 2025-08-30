@@ -36,7 +36,7 @@ import type { Node as ReactFlowNode } from 'reactflow';
 import type { NodeData, NodeType } from "./canvas";
 import { Handle, Position } from "reactflow";
 import { cn } from "@/lib/utils";
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { generateTextFromText } from "@/ai/flows/generate-text-from-text";
 import { generateImageFromText } from "@/ai/flows/generate-image-from-text";
 import { generateVideoFromText } from "@/ai/flows/generate-video-from-text";
@@ -222,7 +222,7 @@ export function Node({ id, data, selected }: NodeProps) {
       let toastTitle = "Uh oh! Something went wrong.";
       let toastDescription = errorMessage;
 
-      if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("resource_exhausted")) {
+      if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("resource_exhausted") || errorMessage.toLowerCase().includes("quota")) {
           toastTitle = "API Quota Exceeded";
           toastDescription = "You have exceeded your request limit for the AI model. Please check your plan or try again later.";
       } else if (errorMessage.includes("content filters")) {
@@ -360,12 +360,6 @@ export function Node({ id, data, selected }: NodeProps) {
                                   <Upload className="w-3 h-3 mr-1.5" />
                                   Upload
                                 </Button>
-                                {type === 'Video' && 
-                                  <Button variant="outline" size="sm">
-                                    <Camera className="w-3 h-3 mr-1.5" />
-                                    Record
-                                  </Button>
-                                }
                                 {type === 'Audio' && 
                                   <Button variant="outline" size="sm">
                                     <Mic className="w-3 h-3 mr-1.5" />
@@ -566,5 +560,3 @@ function NodeToolbar({
     </div>
   );
 }
-
-    
