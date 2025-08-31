@@ -190,6 +190,13 @@ export function Node({ id, data, selected }: NodeProps) {
       let result;
       const inputEdges = edges.filter(edge => edge.target === id);
       const inputNodes = inputEdges.map(edge => nodes.find(node => node.id === edge.source)).filter(Boolean) as ReactFlowNode<NodeData>[];
+      const primaryInputNode = inputNodes[0]?.data;
+      
+      const textInput = (primaryInputNode?.type === 'Text' && primaryInputNode.output) ? primaryInputNode.output : null;
+      const imageInput = (primaryInputNode?.type === 'Image' && primaryInputNode.output) ? primaryInputNode.output : (type === 'Image' && output) ? output : null;
+      const audioInput = (primaryInputNode?.type === 'Audio' && primaryInputNode.output) ? primaryInputNode.output : null;
+
+      const generationPrompt = textInput || prompt;
 
       // Video stitching logic
       if (type === 'Video' && model === 'Video Stitcher') {
@@ -206,25 +213,13 @@ export function Node({ id, data, selected }: NodeProps) {
           const response = await stitchVideos({ videoDataUris: videoInputs });
           result = response.videoDataUri;
           toast({ title: "✅ Video stitching complete!" });
-      } else if (type === 'Text' && inputNodes.some(n => n.data.type === 'Audio')) {
-          const audioNode = inputNodes.find(n => n.data.type === 'Audio' && n.data.output);
-          if (!audioNode) {
-              throw new Error("Connected audio node has no output to transcribe.");
-          }
-          toast({ title: "🎤 Transcribing audio...", description: "This may take a moment." });
-          const response = await transcribeAudio({ audioDataUri: audioNode.data.output! });
-          result = response.transcript;
-          toast({ title: "✅ Transcription complete!" });
-      } else {
-        // Standard generation logic
-        const primaryInputNode = inputNodes[0]?.data;
-        const textInput = (primaryInputNode?.type === 'Text' && primaryInputNode.output) ? primaryInputNode.output : null;
-        const imageInput = (primaryInputNode?.type === 'Image' && primaryInputNode.output) ? primaryInputNode.output : (type === 'Image' && output) ? output : null;
-        
-        const generationPrompt = textInput || prompt;
-
-        if (type === 'Text') {
-          if (imageInput) {
+      } else if (type === 'Text') {
+          if (audioInput) {
+            toast({ title: "🎤 Transcribing audio...", description: "This may take a moment." });
+            const response = await transcribeAudio({ audioDataUri: audioInput });
+            result = response.transcript;
+            toast({ title: "✅ Transcription complete!" });
+          } else if (imageInput) {
               const response = await generateTextFromImage({ photoDataUri: imageInput });
               result = response.description;
           } else {
@@ -234,37 +229,36 @@ export function Node({ id, data, selected }: NodeProps) {
               const response = await generateTextFromText({ prompt: generationPrompt });
               result = response.generatedText;
           }
-        } else if (type === 'Image') {
-            if (!generationPrompt) {
-              throw new Error("Prompt is required for image generation.");
-            }
-            const response = await generateImageFromText({ prompt: generationPrompt });
-            result = response.imageDataUri;
-        } else if (type === 'Video') {
-             if (!generationPrompt && !imageInput) {
-                throw new Error("Prompt or image input is required for video generation.");
-            }
-            toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
-            let response;
-            if (imageInput) {
-                const videoAspectRatio = primaryInputNode?.aspectRatio || aspectRatio;
-                response = await generateVideoFromImage({ 
-                    prompt: prompt || "Animate this image", 
-                    photoDataUri: imageInput,
-                    aspectRatio: videoAspectRatio
-                });
-            } else {
-                response = await generateVideoFromText({ prompt: generationPrompt! });
-            }
-            result = response.videoDataUri;
-            toast({ title: "✅ Video generation complete!", description: "The preview will be updated shortly." });
-        } else if (type === 'Audio') {
-            if (!generationPrompt) {
-               throw new Error("Prompt is required for audio generation.");
-            }
-            const response = await generateAudioFromText({ prompt: generationPrompt });
-            result = response.audioDataUri;
-        }
+      } else if (type === 'Image') {
+          if (!generationPrompt) {
+            throw new Error("Prompt is required for image generation.");
+          }
+          const response = await generateImageFromText({ prompt: generationPrompt });
+          result = response.imageDataUri;
+      } else if (type === 'Video') {
+           if (!generationPrompt && !imageInput) {
+              throw new Error("Prompt or image input is required for video generation.");
+          }
+          toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
+          let response;
+          if (imageInput) {
+              const videoAspectRatio = primaryInputNode?.aspectRatio || aspectRatio;
+              response = await generateVideoFromImage({ 
+                  prompt: prompt || "Animate this image", 
+                  photoDataUri: imageInput,
+                  aspectRatio: videoAspectRatio
+              });
+          } else {
+              response = await generateVideoFromText({ prompt: generationPrompt, aspectRatio });
+          }
+          result = response.videoDataUri;
+          toast({ title: "✅ Video generation complete!", description: "The preview will be updated shortly." });
+      } else if (type === 'Audio') {
+          if (!generationPrompt) {
+             throw new Error("Prompt is required for audio generation.");
+          }
+          const response = await generateAudioFromText({ prompt: generationPrompt });
+          result = response.audioDataUri;
       }
       
       if (result) {
