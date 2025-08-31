@@ -80,12 +80,12 @@ export function Canvas() {
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
-    [setNodes]
+    []
   );
 
   const onEdgesChange: OnEdgesChange = useCallback(
     (changes) => setEdges((eds) => applyEdgeChanges(changes, eds)),
-    [setEdges]
+    []
   );
   
   const onConnectStart: OnConnectStart = useCallback((_, { nodeId, handleId }) => {
@@ -105,12 +105,12 @@ export function Canvas() {
         'react-flow__pane'
       );
 
-      if (targetIsPane) {
+      if (targetIsPane && event instanceof MouseEvent) {
         // we need to remove the wrapper bounds, in order to get the correct position
         const { top, left } = reactFlowWrapper.current.getBoundingClientRect();
         setMenu({
-          top: (event as MouseEvent).clientY - top,
-          left: (event as MouseEvent).clientX - left,
+          top: event.clientY - top,
+          left: event.clientX - left,
           sourceNodeId: sourceNodeId,
           sourceHandleId: sourceHandleId,
         });
