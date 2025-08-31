@@ -246,9 +246,8 @@ export function Canvas() {
     [reactFlowInstance, nodes, toast, deleteNode, updateNodeData, deleteEdge]
   );
 
-  // Add a default node if canvas is empty
   useEffect(() => {
-    if (nodes.length === 0 && reactFlowInstance) {
+    if (nodes.length === 0 && reactFlowInstance === null) {
       addNode("Image");
     }
   }, [reactFlowInstance, nodes.length, addNode]);
