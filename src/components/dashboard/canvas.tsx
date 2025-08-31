@@ -248,7 +248,7 @@ export function Canvas() {
             });
         }
     },
-    [reactFlowInstance, nodes.length, toast, deleteNode, updateNodeData, deleteEdge, screenToFlowPosition]
+    [reactFlowInstance, nodes.length, toast, deleteNode, updateNodeData, deleteEdge, screenToFlowPosition, setNodes, setEdges]
   );
 
   const nodesWithSharedData = useMemo(() => {
@@ -310,3 +310,5 @@ export function Canvas() {
     </div>
   );
 }
+
+    
