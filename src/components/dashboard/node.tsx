@@ -28,7 +28,6 @@ import {
   Unplug,
   Upload,
   Mic,
-  Video,
   Camera,
 } from "lucide-react";
 import Image from "next/image";
@@ -152,10 +151,12 @@ export function Node({ id, data, selected }: NodeProps) {
 
       // Video stitching logic
       const videoInputs = inputNodes.filter(n => n.data.type === 'Video' && n.data.output).map(n => n.data.output as string);
-      if (type === 'Video' && model === 'Video Stitcher' && videoInputs.length >= 2 && videoInputs.length <= 12) {
+      if (type === 'Video' && model === 'Video Stitcher') {
+          if (videoInputs.length < 2 || videoInputs.length > 12) {
+              throw new Error("Video Stitcher requires between 2 and 12 connected video inputs.");
+          }
           if (prompt || output) {
-              toast({ variant: "destructive", title: "Invalid Operation", description: "The prompt and output for the target video node must be empty to stitch videos." });
-              throw new Error("Prompt and output must be empty for stitching.");
+              throw new Error("The prompt and output for the target video node must be empty to stitch videos.");
           }
           toast({ title: "🎬 Video stitching started...", description: `Stitching ${videoInputs.length} videos. This may take a moment.` });
           const response = await stitchVideos({ videoDataUris: videoInputs });
@@ -164,7 +165,7 @@ export function Node({ id, data, selected }: NodeProps) {
       } else {
         // Standard generation logic
         const primaryInputNode = inputNodes[0]?.data;
-        const generationPrompt = primaryInputNode?.type === 'Text' && primaryInputNode.output ? primaryInputNode.output : prompt;
+        const generationPrompt = (primaryInputNode?.type === 'Text' && primaryInputNode.output) ? primaryInputNode.output : prompt;
         const imageInput = (primaryInputNode?.type === 'Image' && primaryInputNode.output) ? primaryInputNode.output : (type === 'Image' && output) ? output : null;
         const audioInput = primaryInputNode?.type === 'Audio' && primaryInputNode.output ? primaryInputNode.output : null;
         
