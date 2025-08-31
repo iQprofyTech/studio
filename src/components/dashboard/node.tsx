@@ -23,6 +23,7 @@ import {
   XCircle,
   Unplug,
   Upload,
+  Wand2,
 } from "lucide-react";
 import Image from "next/image";
 import type { Node as ReactFlowNode } from 'reactflow';
@@ -38,6 +39,7 @@ import { generateVideoFromImage } from "@/ai/flows/generate-video-from-image";
 import { generateTextFromImage } from "@/ai/flows/generate-text-from-image";
 import { stitchVideos } from "@/ai/flows/stitch-videos";
 import { transcribeAudio } from "@/ai/flows/transcribe-audio";
+import { improvePrompt } from "@/ai/flows/improve-prompt-with-ai";
 import { useToast } from "@/hooks/use-toast";
 import { nodeInfo } from "./node-info";
 
@@ -82,7 +84,7 @@ function InputHandle({ nodeId, data, isConnected, onDeleteEdge }: { nodeId: stri
         className={cn(
           "!w-4 !h-4 !border-slate-400 !border-[2.5px] shadow-md transition-colors",
           isConnected 
-            ? `!bg-[${sourceColor}]` 
+            ? `!border-slate-400 !bg-[${sourceColor}]` 
             : "!bg-muted-foreground/60"
         )}
         style={isConnected ? { background: sourceColor } : {}}
@@ -109,7 +111,7 @@ function OutputHandle({ color, isConnected }: { color: string; isConnected: bool
             className={cn(
                 "!w-4 !h-4 !border-slate-400 !border-[2.5px] shadow-md transition-colors",
                 isConnected
-                    ? `!bg-[${color}]`
+                    ? `!border-slate-400 !bg-[${color}]`
                     : "!bg-muted-foreground/60"
             )}
             style={isConnected ? { background: color } : {}}
@@ -128,6 +130,7 @@ export function Node({ id, data, selected }: NodeProps) {
 
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isImproving, setIsImproving] = useState(false);
 
   const isTarget = edges.some(edge => edge.target === id);
   const isSource = edges.some(edge => edge.source === id);
@@ -152,6 +155,34 @@ export function Node({ id, data, selected }: NodeProps) {
     }
   };
 
+  const handleImprovePrompt = useCallback(async () => {
+    if (!prompt) {
+      toast({
+        variant: "destructive",
+        title: "Prompt is empty",
+        description: "Please enter a prompt to improve.",
+      });
+      return;
+    }
+    setIsImproving(true);
+    try {
+      const response = await improvePrompt({ prompt });
+      onUpdate(id, { prompt: response.improvedPrompt });
+      toast({
+        title: "Prompt improved!",
+      });
+    } catch (error) {
+       console.error("Failed to improve prompt:", error);
+       toast({
+        variant: "destructive",
+        title: "Failed to improve prompt",
+        description: error instanceof Error ? error.message : "An unknown error occurred.",
+      });
+    } finally {
+      setIsImproving(false);
+    }
+  }, [prompt, id, onUpdate, toast]);
+
   const handleGenerate = useCallback(async () => {
     setIsLoading(true);
     onUpdate(id, { output: null, isGenerating: true });
@@ -163,9 +194,11 @@ export function Node({ id, data, selected }: NodeProps) {
       // Video stitching logic
       if (type === 'Video' && model === 'Video Stitcher') {
           if (prompt.trim() !== '') {
-              throw new Error("The prompt for the target video node must be empty to stitch videos.");
+              throw new Error("The prompt for the Video Stitcher node must be empty.");
           }
-          const videoInputs = inputNodes.filter(n => n.data.type === 'Video' && n.data.output).map(n => n.data.output as string);
+          const videoInputs = inputNodes
+            .filter(n => n.data.type === 'Video' && n.data.output)
+            .map(n => n.data.output as string);
           if (videoInputs.length < 2 || videoInputs.length > 12) {
               throw new Error("Video Stitcher requires between 2 and 12 connected video inputs.");
           }
@@ -173,22 +206,25 @@ export function Node({ id, data, selected }: NodeProps) {
           const response = await stitchVideos({ videoDataUris: videoInputs });
           result = response.videoDataUri;
           toast({ title: "✅ Video stitching complete!" });
+      } else if (type === 'Text' && inputNodes.some(n => n.data.type === 'Audio')) {
+          const audioNode = inputNodes.find(n => n.data.type === 'Audio' && n.data.output);
+          if (!audioNode) {
+              throw new Error("Connected audio node has no output to transcribe.");
+          }
+          toast({ title: "🎤 Transcribing audio...", description: "This may take a moment." });
+          const response = await transcribeAudio({ audioDataUri: audioNode.data.output! });
+          result = response.transcript;
+          toast({ title: "✅ Transcription complete!" });
       } else {
         // Standard generation logic
         const primaryInputNode = inputNodes[0]?.data;
         const textInput = (primaryInputNode?.type === 'Text' && primaryInputNode.output) ? primaryInputNode.output : null;
         const imageInput = (primaryInputNode?.type === 'Image' && primaryInputNode.output) ? primaryInputNode.output : (type === 'Image' && output) ? output : null;
-        const audioInput = (primaryInputNode?.type === 'Audio' && primaryInputNode.output) ? primaryInputNode.output : null;
         
         const generationPrompt = textInput || prompt;
 
         if (type === 'Text') {
-          if (audioInput) {
-              toast({ title: "🎤 Transcribing audio...", description: "This may take a moment." });
-              const response = await transcribeAudio({ audioDataUri: audioInput });
-              result = response.transcript;
-              toast({ title: "✅ Transcription complete!" });
-          } else if (imageInput) {
+          if (imageInput) {
               const response = await generateTextFromImage({ photoDataUri: imageInput });
               result = response.description;
           } else {
@@ -372,12 +408,24 @@ export function Node({ id, data, selected }: NodeProps) {
           </div>
           {selected && (
             <>
-              <Textarea
-                  placeholder={`Enter your ${type.toLowerCase()} prompt here...`}
-                  value={prompt}
-                  onChange={(e) => onUpdate(id, { prompt: e.target.value })}
-                  className="bg-background/70 text-sm min-h-[80px]"
-              />
+               <div className="relative">
+                 <Textarea
+                    placeholder={`Enter your ${type.toLowerCase()} prompt here...`}
+                    value={prompt}
+                    onChange={(e) => onUpdate(id, { prompt: e.target.value })}
+                    className="bg-background/70 text-sm min-h-[80px] pr-10"
+                />
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="absolute top-1/2 right-1.5 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-primary"
+                    onClick={handleImprovePrompt}
+                    disabled={isImproving || !prompt}
+                    title="Improve prompt with AI"
+                >
+                    {isImproving ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                </Button>
+               </div>
               <Button className="w-full" onClick={handleGenerate} disabled={isLoading}>
                   {isLoading ? <LoaderCircle className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
                   {isLoading ? "Generating..." : "Generate"}
@@ -410,7 +458,6 @@ const modelOptions: Record<NodeType, { name: string; enabled: boolean }[]> = {
     Text: [
         { name: "Gemini 1.5 Pro", enabled: true },
         { name: "Gemini 1.5 Flash", enabled: true },
-        { name: "Audio Transcription", enabled: true },
         { name: "Google AI редактор (Gemini Flash 2.0)", enabled: false },
         { name: "ChatGPT 4.5", enabled: false },
         { name: "ChatGPT 4-o (omni)", enabled: false },
