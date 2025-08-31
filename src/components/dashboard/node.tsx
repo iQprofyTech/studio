@@ -1,4 +1,3 @@
-
 "use client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -378,7 +377,7 @@ export function Node({ id, data, selected }: NodeProps) {
             <>
               <Textarea
                   placeholder={`Enter your ${type.toLowerCase()} prompt here...`}
-                  defaultValue={prompt}
+                  value={prompt}
                   onChange={(e) => onUpdate(id, { prompt: e.target.value })}
                   className="bg-background/70 text-sm min-h-[80px]"
               />
