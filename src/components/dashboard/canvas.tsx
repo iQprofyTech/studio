@@ -173,7 +173,7 @@ export function Canvas() {
             )
         );
     },
-    [setNodes]
+    []
   );
   
   const addNode = useCallback(
@@ -251,7 +251,7 @@ export function Canvas() {
     if (nodes.length === 0 && reactFlowInstance) {
       addNode("Image");
     }
-  }, [reactFlowInstance, nodes.length]);
+  }, [reactFlowInstance, nodes.length, addNode]);
 
 
   const nodesWithCallbacks = useMemo(
@@ -313,5 +313,6 @@ export function Canvas() {
     </div>
   );
 }
+
 
     
