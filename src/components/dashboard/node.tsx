@@ -17,10 +17,6 @@ import {
   Ratio,
   Settings,
   Trash2,
-  AudioWaveform,
-  Image as ImageIcon,
-  Text as TextIcon,
-  Video as VideoIcon,
   LoaderCircle,
   Copy,
   Download,
@@ -28,14 +24,13 @@ import {
   Unplug,
   Upload,
   Mic,
-  Camera,
 } from "lucide-react";
 import Image from "next/image";
 import type { Node as ReactFlowNode } from 'reactflow';
 import type { NodeData, NodeType } from "./canvas";
 import { Handle, Position } from "reactflow";
 import { cn } from "@/lib/utils";
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { generateTextFromText } from "@/ai/flows/generate-text-from-text";
 import { generateImageFromText } from "@/ai/flows/generate-image-from-text";
 import { generateVideoFromText } from "@/ai/flows/generate-video-from-text";
@@ -46,7 +41,6 @@ import { stitchVideos } from "@/ai/flows/stitch-videos";
 import { transcribeAudio } from "@/ai/flows/transcribe-audio";
 import { useToast } from "@/hooks/use-toast";
 import { nodeInfo } from "./node-info";
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 interface NodeProps {
   id: string;
@@ -111,14 +105,10 @@ export function Node({ id, data, selected }: NodeProps) {
   const color = nodeInfo[type].color;
   const toolbarItems = nodeToolbarConfig[type];
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
 
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
 
-  
   const isTarget = edges.some(edge => edge.target === id);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -150,8 +140,8 @@ export function Node({ id, data, selected }: NodeProps) {
       const inputNodes = inputEdges.map(edge => nodes.find(node => node.id === edge.source)).filter(Boolean) as ReactFlowNode<NodeData>[];
 
       // Video stitching logic
-      const videoInputs = inputNodes.filter(n => n.data.type === 'Video' && n.data.output).map(n => n.data.output as string);
       if (type === 'Video' && model === 'Video Stitcher') {
+          const videoInputs = inputNodes.filter(n => n.data.type === 'Video' && n.data.output).map(n => n.data.output as string);
           if (videoInputs.length < 2 || videoInputs.length > 12) {
               throw new Error("Video Stitcher requires between 2 and 12 connected video inputs.");
           }
@@ -337,41 +327,25 @@ export function Node({ id, data, selected }: NodeProps) {
                 </>
               ) : (
                 <div className="text-muted-foreground/50 text-sm p-4 text-center flex flex-col items-center justify-center gap-2">
-                    {isRecording ? (
-                        <>
-                            <video ref={videoRef} className="w-full aspect-video rounded-md" autoPlay muted />
-                             {hasCameraPermission === false && (
-                                <Alert variant="destructive" className="text-left">
-                                  <AlertTitle>Camera Access Required</AlertTitle>
-                                  <AlertDescription>
-                                    Please allow camera access to use this feature.
-                                  </AlertDescription>
-                                </Alert>
-                            )}
-                        </>
-                    ) : (
-                        <>
-                         <p>
-                            {(type === "Image" || type === "Video") 
-                              ? `Preview (${aspectRatio}) will appear here`
-                              : "Preview will appear here"
-                            }
-                           </p>
-                           {selected && (type === "Image" || type === "Video" || type === "Audio") && (
-                             <div className="flex gap-2">
-                                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                                  <Upload className="w-3 h-3 mr-1.5" />
-                                  Upload
-                                </Button>
-                                {type === 'Audio' && 
-                                  <Button variant="outline" size="sm">
-                                    <Mic className="w-3 h-3 mr-1.5" />
-                                    Record
-                                  </Button>
-                                }
-                             </div>
-                           )}
-                        </>
+                    <p>
+                        {(type === "Image" || type === "Video") 
+                            ? `Preview (${aspectRatio}) will appear here`
+                            : "Preview will appear here"
+                        }
+                    </p>
+                    {selected && (type === "Image" || type === "Video" || type === "Audio") && (
+                        <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                            <Upload className="w-3 h-3 mr-1.5" />
+                            Upload
+                        </Button>
+                        {type === 'Audio' && 
+                            <Button variant="outline" size="sm">
+                            <Mic className="w-3 h-3 mr-1.5" />
+                            Record
+                            </Button>
+                        }
+                        </div>
                     )}
                 </div>
               )}
@@ -563,5 +537,3 @@ function NodeToolbar({
     </div>
   );
 }
-
-    

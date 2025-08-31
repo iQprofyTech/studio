@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useCallback, useState, useMemo, useRef, useEffect } from "react";
+import React, { useCallback, useState, useMemo, useRef } from "react";
 import ReactFlow, {
   addEdge,
   applyEdgeChanges,
@@ -72,7 +72,7 @@ export function Canvas() {
   const [nodes, setNodes] = useState<Node<NodeData>[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { screenToFlowPosition, setViewport } = useReactFlow();
+  const { screenToFlowPosition } = useReactFlow();
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [menu, setMenu] = useState<ContextMenuData | null>(null);
   const connectingNodeId = useRef<{nodeId: string | null, handleId: string | null}>({ nodeId: null, handleId: null });
@@ -94,30 +94,29 @@ export function Canvas() {
 
   const onConnectEnd: OnConnectEnd = useCallback(
     (event) => {
-      const sourceNodeId = connectingNodeId.current.nodeId;
-      const sourceHandleId = connectingNodeId.current.handleId;
-      
-      if (!sourceNodeId || !reactFlowWrapper.current || !reactFlowInstance) {
-          return;
-      }
-      
-      const targetIsPane = (event.target as HTMLElement).classList.contains('react-flow__pane');
-
-      if (targetIsPane && event instanceof MouseEvent) {
-        const position = screenToFlowPosition({
-          x: event.clientX,
-          y: event.clientY,
-        });
+        const sourceNodeId = connectingNodeId.current.nodeId;
+        if (!sourceNodeId || !reactFlowWrapper.current || !reactFlowInstance) {
+            return;
+        }
         
-        setMenu({
-          top: position.y,
-          left: position.x,
-          sourceNodeId: sourceNodeId,
-          sourceHandleId: sourceHandleId,
-        });
-      }
+        const targetIsPane = (event.target as HTMLElement)?.classList.contains('react-flow__pane');
+
+        if (targetIsPane && event instanceof MouseEvent) {
+            const { top, left } = reactFlowWrapper.current.getBoundingClientRect();
+            const position = reactFlowInstance.screenToFlowPosition({
+                x: event.clientX - left,
+                y: event.clientY - top,
+            });
+
+            setMenu({
+                top: position.y,
+                left: position.x,
+                sourceNodeId: sourceNodeId,
+                sourceHandleId: connectingNodeId.current.handleId,
+            });
+        }
     },
-    [reactFlowInstance, screenToFlowPosition]
+    [reactFlowInstance]
   );
 
 
@@ -310,5 +309,3 @@ export function Canvas() {
     </div>
   );
 }
-
-    
