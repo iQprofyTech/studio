@@ -72,7 +72,7 @@ export function Canvas() {
   const [nodes, setNodes] = useState<Node<NodeData>[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, setViewport } = useReactFlow();
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [menu, setMenu] = useState<ContextMenuData | null>(null);
   const connectingNodeId = useRef<{nodeId: string | null, handleId: string | null}>({ nodeId: null, handleId: null });
@@ -97,14 +97,13 @@ export function Canvas() {
       const sourceNodeId = connectingNodeId.current.nodeId;
       const sourceHandleId = connectingNodeId.current.handleId;
       
-      if (!sourceNodeId || !reactFlowWrapper.current) {
+      if (!sourceNodeId || !reactFlowWrapper.current || !reactFlowInstance) {
           return;
       }
       
       const targetIsPane = (event.target as HTMLElement).classList.contains('react-flow__pane');
 
       if (targetIsPane && event instanceof MouseEvent) {
-        // We need to use the reactFlowInstance to get the correct position
         const position = screenToFlowPosition({
           x: event.clientX,
           y: event.clientY,
@@ -118,7 +117,7 @@ export function Canvas() {
         });
       }
     },
-    [screenToFlowPosition]
+    [reactFlowInstance, screenToFlowPosition]
   );
 
 
@@ -249,7 +248,7 @@ export function Canvas() {
             });
         }
     },
-    [reactFlowInstance, nodes.length, toast, deleteNode, updateNodeData, deleteEdge, screenToFlowPosition, setNodes, setEdges]
+    [reactFlowInstance, nodes.length, toast, deleteNode, updateNodeData, deleteEdge, screenToFlowPosition]
   );
 
   const nodesWithSharedData = useMemo(() => {
@@ -260,9 +259,11 @@ export function Canvas() {
         nodes: nodes,
         edges: edges,
         onUpdate: updateNodeData,
+        onDelete: deleteNode,
+        onDeleteEdge: deleteEdge
       },
     }));
-  }, [nodes, edges, updateNodeData]);
+  }, [nodes, edges, updateNodeData, deleteNode, deleteEdge]);
 
  const animatedEdges = useMemo(() => {
     return edges.map(edge => {
@@ -309,4 +310,3 @@ export function Canvas() {
     </div>
   );
 }
-

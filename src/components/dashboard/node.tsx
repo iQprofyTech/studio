@@ -154,8 +154,8 @@ export function Node({ id, data, selected }: NodeProps) {
           if (videoInputs.length < 2 || videoInputs.length > 12) {
               throw new Error("Video Stitcher requires between 2 and 12 connected video inputs.");
           }
-          if (prompt || output) {
-              throw new Error("The prompt and output for the target video node must be empty to stitch videos.");
+          if (prompt) {
+              throw new Error("The prompt for the target video node must be empty to stitch videos.");
           }
           toast({ title: "🎬 Video stitching started...", description: `Stitching ${videoInputs.length} videos. This may take a moment.` });
           const response = await stitchVideos({ videoDataUris: videoInputs });
@@ -164,10 +164,12 @@ export function Node({ id, data, selected }: NodeProps) {
       } else {
         // Standard generation logic
         const primaryInputNode = inputNodes[0]?.data;
-        const generationPrompt = (primaryInputNode?.type === 'Text' && primaryInputNode.output) ? primaryInputNode.output : prompt;
+        const textInput = (primaryInputNode?.type === 'Text' && primaryInputNode.output) ? primaryInputNode.output : null;
         const imageInput = (primaryInputNode?.type === 'Image' && primaryInputNode.output) ? primaryInputNode.output : (type === 'Image' && output) ? output : null;
-        const audioInput = primaryInputNode?.type === 'Audio' && primaryInputNode.output ? primaryInputNode.output : null;
+        const audioInput = (primaryInputNode?.type === 'Audio' && primaryInputNode.output) ? primaryInputNode.output : null;
         
+        const generationPrompt = textInput || prompt;
+
         if (type === 'Text') {
           if (imageInput) {
               const response = await generateTextFromImage({ photoDataUri: imageInput });
