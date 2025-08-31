@@ -77,7 +77,10 @@ export function Canvas() {
   const { toast } = useToast();
 
   const onNodesChange: OnNodesChange = useCallback(
-    (changes) => setNodes((nds) => applyNodeChanges(changes, nds)),
+    (changes) => {
+        setMenu(null);
+        setNodes((nds) => applyNodeChanges(changes, nds))
+    },
     [setNodes]
   );
 
@@ -106,7 +109,7 @@ export function Canvas() {
           setTimeout(() => {
             setMenu({
                 top: position.y,
-                left: position.x,
+                left: position.x - 90, // Adjust for menu width
                 sourceNodeId: sourceNodeId,
                 sourceHandleId: connectingNodeId.current.handleId,
             });
@@ -299,3 +302,5 @@ export function Canvas() {
     </div>
   );
 }
+
+    
