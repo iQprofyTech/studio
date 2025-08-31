@@ -73,7 +73,7 @@ const mimeTypes: Record<NodeType, string> = {
 function InputHandle({ nodeId, data, isConnected, onDeleteEdge }: { nodeId: string; data: NodeData; isConnected: boolean; onDeleteEdge: (edgeId: string) => void }) {
   const edge = data.edges.find(e => e.target === nodeId);
   const sourceNode = data.nodes.find(n => n.id === edge?.source);
-  const sourceColor = sourceNode ? nodeInfo[sourceNode.data.type].color : 'hsl(var(--accent))';
+  const sourceColor = sourceNode ? nodeInfo[sourceNode.data.type].color : 'hsl(var(--muted-foreground))';
 
   return (
     <div className="group/handle absolute -left-4 top-1/2 -translate-y-1/2 h-full w-4 flex items-center justify-center">
@@ -81,7 +81,7 @@ function InputHandle({ nodeId, data, isConnected, onDeleteEdge }: { nodeId: stri
         type="target"
         position={Position.Left}
         className={cn(
-          "!w-4 !h-4 !border-[2.5px] shadow-md transition-colors !border-slate-400",
+          "!w-4 !h-4 !border-slate-400 !border-[2.5px] shadow-md transition-colors",
           isConnected 
             ? `!bg-[${sourceColor}]` 
             : "!bg-muted-foreground/60"
@@ -104,17 +104,17 @@ function InputHandle({ nodeId, data, isConnected, onDeleteEdge }: { nodeId: stri
 function OutputHandle({ color, isConnected }: { color: string; isConnected: boolean }) {
   return (
     <div className="group/handle absolute -right-4 top-1/2 -translate-y-1/2 h-full w-4 flex items-center justify-center">
-      <Handle
-        type="source"
-        position={Position.Right}
-        className={cn(
-          "!w-4 !h-4 !border-[2.5px] !border-slate-400 shadow-md transition-colors",
-          isConnected
-            ? `!bg-[${color}]`
-            : "!bg-muted-foreground/60"
-        )}
-        style={isConnected ? { background: color } : {}}
-      />
+        <Handle
+            type="source"
+            position={Position.Right}
+            className={cn(
+                "!w-4 !h-4 !border-slate-400 !border-[2.5px] shadow-md transition-colors",
+                isConnected
+                    ? `!bg-[${color}]`
+                    : "!bg-muted-foreground/60"
+            )}
+            style={isConnected ? { background: color } : {}}
+        />
     </div>
   );
 }
@@ -163,7 +163,7 @@ export function Node({ id, data, selected }: NodeProps) {
 
       // Video stitching logic
       if (type === 'Video' && model === 'Video Stitcher') {
-          if (prompt) {
+          if (prompt.trim()) {
               throw new Error("The prompt for the target video node must be empty to stitch videos.");
           }
           const videoInputs = inputNodes.filter(n => n.data.type === 'Video' && n.data.output).map(n => n.data.output as string);
@@ -559,3 +559,5 @@ function NodeToolbar({
     </div>
   );
 }
+
+    
