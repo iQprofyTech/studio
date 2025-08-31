@@ -246,12 +246,6 @@ export function Canvas() {
     [reactFlowInstance, nodes, toast, deleteNode, updateNodeData, deleteEdge]
   );
 
-  useEffect(() => {
-    if (nodes.length === 0 && reactFlowInstance === null) {
-      addNode("Image");
-    }
-  }, [reactFlowInstance, nodes.length, addNode]);
-
 
   const nodesWithCallbacks = useMemo(
     () =>
@@ -312,6 +306,3 @@ export function Canvas() {
     </div>
   );
 }
-
-
-    

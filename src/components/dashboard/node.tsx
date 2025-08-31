@@ -366,12 +366,6 @@ export function Node({ id, data, selected }: NodeProps) {
                                     Record
                                   </Button>
                                 }
-                                 {type === 'Video' && 
-                                  <Button variant="outline" size="sm">
-                                    <Camera className="w-3 h-3 mr-1.5" />
-                                    Record
-                                  </Button>
-                                }
                              </div>
                            )}
                         </>
@@ -566,5 +560,3 @@ function NodeToolbar({
     </div>
   );
 }
-
-    
