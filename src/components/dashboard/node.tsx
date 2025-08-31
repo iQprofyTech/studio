@@ -81,10 +81,10 @@ function InputHandle({ nodeId, data, isConnected, onDeleteEdge }: { nodeId: stri
         type="target"
         position={Position.Left}
         className={cn(
-          "!w-4 !h-4 !border-[2.5px] shadow-md transition-colors",
+          "!w-4 !h-4 !border-[2.5px] shadow-md transition-colors !border-slate-400",
           isConnected 
-            ? `!bg-[${sourceColor}] !border-slate-500` 
-            : "!bg-muted-foreground/60 !border-slate-400"
+            ? `!bg-[${sourceColor}]` 
+            : "!bg-muted-foreground/60"
         )}
         style={isConnected ? { background: sourceColor } : {}}
       />
@@ -97,6 +97,24 @@ function InputHandle({ nodeId, data, isConnected, onDeleteEdge }: { nodeId: stri
           <Unplug className="w-3.5 h-3.5" />
         </button>
       )}
+    </div>
+  );
+}
+
+function OutputHandle({ color, isConnected }: { color: string; isConnected: boolean }) {
+  return (
+    <div className="group/handle absolute -right-4 top-1/2 -translate-y-1/2 h-full w-4 flex items-center justify-center">
+      <Handle
+        type="source"
+        position={Position.Right}
+        className={cn(
+          "!w-4 !h-4 !border-[2.5px] !border-slate-400 shadow-md transition-colors",
+          isConnected
+            ? `!bg-[${color}]`
+            : "!bg-muted-foreground/60"
+        )}
+        style={isConnected ? { background: color } : {}}
+      />
     </div>
   );
 }
@@ -371,17 +389,7 @@ export function Node({ id, data, selected }: NodeProps) {
         </CardContent>
 
       </Card>
-       <Handle 
-          type="source" 
-          position={Position.Right} 
-          className={cn(
-            "!w-4 !h-4 !-right-4 !border-[2.5px] shadow-md transition-colors",
-            isSource 
-              ? `!bg-[${color}] !border-slate-500` 
-              : "!bg-muted-foreground/60 !border-slate-400"
-          )}
-          style={isSource ? { background: color } : {}} 
-        />
+      <OutputHandle color={color} isConnected={isSource} />
     </div>
   );
 }
