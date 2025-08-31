@@ -72,23 +72,26 @@ const mimeTypes: Record<NodeType, string> = {
 
 function InputHandle({ nodeId, data, isConnected, onDeleteEdge }: { nodeId: string; data: NodeData; isConnected: boolean; onDeleteEdge: (edgeId: string) => void }) {
   const edge = data.edges.find(e => e.target === nodeId);
+  const sourceNode = data.nodes.find(n => n.id === edge?.source);
+  const sourceColor = sourceNode ? nodeInfo[sourceNode.data.type].color : 'hsl(var(--accent))';
 
   return (
-    <div className="group/handle absolute -left-4 top-1/2 -translate-y-1/2 h-full w-4 flex items-center justify-start">
+    <div className="group/handle absolute -left-4 top-1/2 -translate-y-1/2 h-full w-4 flex items-center justify-center">
       <Handle
         type="target"
         position={Position.Left}
         className={cn(
-          "!w-3 !h-3 !border-2 !bg-background transition-colors",
-          isConnected ? "!border-accent" : "!border-muted-foreground/50",
-          "peer"
+          "!w-4 !h-4 !border-[2.5px] shadow-md transition-colors",
+          isConnected 
+            ? `!bg-[${sourceColor}] !border-slate-500` 
+            : "!bg-muted-foreground/60 !border-slate-400"
         )}
-        style={isConnected ? { borderColor: '#B555C2' } : {}}
+        style={isConnected ? { background: sourceColor } : {}}
       />
       {isConnected && edge && (
         <button
           onClick={() => onDeleteEdge(edge.id)}
-          className="absolute left-0 p-1 rounded-full bg-destructive/20 text-destructive opacity-0 peer-hover:opacity-100 hover:!opacity-100 transition-opacity z-10 -translate-x-full"
+          className="absolute left-0 p-1 rounded-full bg-destructive/20 text-destructive opacity-0 group-hover/handle:opacity-100 hover:!opacity-100 transition-opacity z-10 -translate-x-full"
           aria-label="Delete connection"
         >
           <Unplug className="w-3.5 h-3.5" />
@@ -110,6 +113,7 @@ export function Node({ id, data, selected }: NodeProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const isTarget = edges.some(edge => edge.target === id);
+  const isSource = edges.some(edge => edge.source === id);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -141,12 +145,12 @@ export function Node({ id, data, selected }: NodeProps) {
 
       // Video stitching logic
       if (type === 'Video' && model === 'Video Stitcher') {
+          if (prompt) {
+              throw new Error("The prompt for the target video node must be empty to stitch videos.");
+          }
           const videoInputs = inputNodes.filter(n => n.data.type === 'Video' && n.data.output).map(n => n.data.output as string);
           if (videoInputs.length < 2 || videoInputs.length > 12) {
               throw new Error("Video Stitcher requires between 2 and 12 connected video inputs.");
-          }
-          if (prompt) {
-              throw new Error("The prompt for the target video node must be empty to stitch videos.");
           }
           toast({ title: "🎬 Video stitching started...", description: `Stitching ${videoInputs.length} videos. This may take a moment.` });
           const response = await stitchVideos({ videoDataUris: videoInputs });
@@ -367,7 +371,17 @@ export function Node({ id, data, selected }: NodeProps) {
         </CardContent>
 
       </Card>
-      <Handle type="source" position={Position.Right} className="!bg-primary !border-primary !-right-4 !w-3 !h-3 top-1/2 !border-2" style={{ borderColor: '#4BC178'}} />
+       <Handle 
+          type="source" 
+          position={Position.Right} 
+          className={cn(
+            "!w-4 !h-4 !-right-4 !border-[2.5px] shadow-md transition-colors",
+            isSource 
+              ? `!bg-[${color}] !border-slate-500` 
+              : "!bg-muted-foreground/60 !border-slate-400"
+          )}
+          style={isSource ? { background: color } : {}} 
+        />
     </div>
   );
 }
