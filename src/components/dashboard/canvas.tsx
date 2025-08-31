@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useCallback, useState, useMemo, useRef, useEffect } from "react";
+import React, { useCallback, useState, useMemo, useRef } from "react";
 import ReactFlow, {
   addEdge,
   applyEdgeChanges,
@@ -108,6 +108,11 @@ export function Canvas() {
       if (targetIsPane && event instanceof MouseEvent) {
         // we need to remove the wrapper bounds, in order to get the correct position
         const { top, left } = reactFlowWrapper.current.getBoundingClientRect();
+        const position = reactFlowInstance.screenToFlowPosition({
+          x: event.clientX,
+          y: event.clientY,
+        });
+
         setMenu({
           top: event.clientY - top,
           left: event.clientX - left,
@@ -118,6 +123,7 @@ export function Canvas() {
     },
     [reactFlowInstance]
   );
+
 
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
@@ -306,3 +312,5 @@ export function Canvas() {
     </div>
   );
 }
+
+    
