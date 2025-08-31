@@ -108,8 +108,8 @@ export function Canvas() {
           // Adding a short delay to prevent the pane click from closing the menu immediately
           setTimeout(() => {
             setMenu({
-                top: position.y,
-                left: position.x - 90, // Adjust for menu width
+                top: event.clientY - top,
+                left: event.clientX - left,
                 sourceNodeId: sourceNodeId,
                 sourceHandleId: connectingNodeId.current.handleId,
             });
@@ -222,25 +222,22 @@ export function Canvas() {
         
         setNodes(nds => [...nds, newNode as Node<NodeData>]);
 
-        if (sourceNodeId) {
-            setNodes(nds => {
-                const sourceNode = nds.find(node => node.id === sourceNodeId);
-                if (sourceNode) {
-                    const newEdge = {
-                        id: `${sourceNodeId}-${newNodeId}`,
-                        source: sourceNodeId,
-                        sourceHandle: sourceHandleId,
-                        target: newNodeId,
-                        style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
-                        type: 'default',
-                    };
-                    setEdges(eds => addEdge(newEdge, eds));
-                }
-                return nds;
-            });
+        if (sourceNodeId && reactFlowInstance) {
+             const sourceNode = nodes.find(node => node.id === sourceNodeId);
+             if (sourceNode) {
+                const newEdge = {
+                    id: `${sourceNodeId}-${newNodeId}`,
+                    source: sourceNodeId,
+                    sourceHandle: sourceHandleId,
+                    target: newNodeId,
+                    style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
+                    type: 'default',
+                };
+                setEdges(eds => addEdge(newEdge, eds));
+             }
         }
     },
-    [reactFlowInstance, nodes.length, toast, deleteNode, updateNodeData, deleteEdge, setNodes, setEdges]
+    [reactFlowInstance, nodes, toast, deleteNode, updateNodeData, deleteEdge, setNodes, setEdges]
   );
 
   const nodesWithSharedData = useMemo(() => {
@@ -289,10 +286,14 @@ export function Canvas() {
       </ReactFlow>
 
       <AddNodeToolbar onAddNode={(type) => addNode(type)} />
-      {menu && (
+      {menu && reactFlowInstance &&(
         <ContextMenu
           onClick={(nodeType) => {
-            addNode(nodeType, { x: menu.left, y: menu.top }, menu.sourceNodeId, menu.sourceHandleId);
+            const position = reactFlowInstance.screenToFlowPosition({
+                x: menu.left,
+                y: menu.top,
+            });
+            addNode(nodeType, position, menu.sourceNodeId, menu.sourceHandleId);
             setMenu(null);
           }}
           top={menu.top}
@@ -302,5 +303,3 @@ export function Canvas() {
     </div>
   );
 }
-
-    
