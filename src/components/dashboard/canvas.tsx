@@ -18,7 +18,6 @@ import ReactFlow, {
   type OnConnectEnd,
   type OnConnectStart,
   type ReactFlowInstance,
-  useReactFlow,
 } from "reactflow";
 import "reactflow/dist/style.css";
 
@@ -72,7 +71,6 @@ export function Canvas() {
   const [nodes, setNodes] = useState<Node<NodeData>[]>(initialNodes);
   const [edges, setEdges] = useState<Edge[]>(initialEdges);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { screenToFlowPosition } = useReactFlow();
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance | null>(null);
   const [menu, setMenu] = useState<ContextMenuData | null>(null);
   const connectingNodeId = useRef<{nodeId: string | null, handleId: string | null}>({ nodeId: null, handleId: null });
@@ -95,13 +93,9 @@ export function Canvas() {
   const onConnectEnd: OnConnectEnd = useCallback(
     (event) => {
         const sourceNodeId = connectingNodeId.current.nodeId;
-        if (!sourceNodeId || !reactFlowWrapper.current || !reactFlowInstance) {
-            return;
-        }
-        
         const targetIsPane = (event.target as HTMLElement)?.classList.contains('react-flow__pane');
 
-        if (targetIsPane && event instanceof MouseEvent) {
+        if (targetIsPane && sourceNodeId && reactFlowWrapper.current && reactFlowInstance && event instanceof MouseEvent) {
             const { top, left } = reactFlowWrapper.current.getBoundingClientRect();
             const position = reactFlowInstance.screenToFlowPosition({
                 x: event.clientX - left,
@@ -197,17 +191,10 @@ export function Canvas() {
 
         const newNodeId = `${type}-${Date.now()}`;
         
-        let pos: { x: number; y: number };
-        if (position) {
-            pos = position;
-        } else if (reactFlowInstance) {
-            pos = screenToFlowPosition({
-                x: (reactFlowWrapper.current?.clientWidth || window.innerWidth) / 2,
-                y: (reactFlowWrapper.current?.clientHeight || window.innerHeight) / 3,
-            });
-        } else {
-            pos = { x: 0, y: 0 };
-        }
+        const pos = position || reactFlowInstance?.screenToFlowPosition({
+            x: (reactFlowWrapper.current?.clientWidth || window.innerWidth) / 2,
+            y: (reactFlowWrapper.current?.clientHeight || window.innerHeight) / 3,
+        }) || { x: 0, y: 0 };
         
         const newNode: Node<Omit<NodeData, 'nodes' | 'edges'>> = {
             id: newNodeId,
@@ -247,7 +234,7 @@ export function Canvas() {
             });
         }
     },
-    [reactFlowInstance, nodes.length, toast, deleteNode, updateNodeData, deleteEdge, screenToFlowPosition, setNodes, setEdges]
+    [reactFlowInstance, nodes.length, toast, deleteNode, updateNodeData, deleteEdge, setNodes, setEdges]
   );
 
   const nodesWithSharedData = useMemo(() => {
