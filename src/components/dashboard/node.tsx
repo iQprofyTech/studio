@@ -23,7 +23,6 @@ import {
   XCircle,
   Unplug,
   Upload,
-  Mic,
 } from "lucide-react";
 import Image from "next/image";
 import type { Node as ReactFlowNode } from 'reactflow';
@@ -103,7 +102,7 @@ function InputHandle({ nodeId, data, isConnected, onDeleteEdge }: { nodeId: stri
 
 function OutputHandle({ color, isConnected }: { color: string; isConnected: boolean }) {
   return (
-    <div className="group/handle absolute -right-4 top-1/2 -translate-y-1/2 h-full w-4 flex items-center justify-center">
+     <div className="group/handle absolute -right-4 top-1/2 -translate-y-1/2 h-full w-4 flex items-center justify-center">
         <Handle
             type="source"
             position={Position.Right}
@@ -163,7 +162,7 @@ export function Node({ id, data, selected }: NodeProps) {
 
       // Video stitching logic
       if (type === 'Video' && model === 'Video Stitcher') {
-          if (prompt.trim()) {
+          if (prompt.trim() !== '') {
               throw new Error("The prompt for the target video node must be empty to stitch videos.");
           }
           const videoInputs = inputNodes.filter(n => n.data.type === 'Video' && n.data.output).map(n => n.data.output as string);
@@ -184,14 +183,14 @@ export function Node({ id, data, selected }: NodeProps) {
         const generationPrompt = textInput || prompt;
 
         if (type === 'Text') {
-          if (imageInput) {
-              const response = await generateTextFromImage({ photoDataUri: imageInput });
-              result = response.description;
-          } else if (audioInput) {
+          if (audioInput) {
               toast({ title: "🎤 Transcribing audio...", description: "This may take a moment." });
               const response = await transcribeAudio({ audioDataUri: audioInput });
               result = response.transcript;
               toast({ title: "✅ Transcription complete!" });
+          } else if (imageInput) {
+              const response = await generateTextFromImage({ photoDataUri: imageInput });
+              result = response.description;
           } else {
               if (!generationPrompt) {
                  throw new Error("Prompt cannot be empty for Text generation.");
@@ -558,5 +557,7 @@ function NodeToolbar({
     </div>
   );
 }
+
+    
 
     
