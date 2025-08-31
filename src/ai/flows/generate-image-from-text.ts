@@ -38,8 +38,8 @@ const generateImageFromTextFlow = ai.defineFlow(
   },
   async input => {
     const {media} = await ai.generate({
-      model: 'googleai/imagen-4.0-fast-generate-001',
-      prompt: input.prompt,
+      model: 'googleai/gemini-pro-vision',
+      prompt: `Generate an image of: ${input.prompt}`,
     });
     if (!media?.url) {
         throw new Error("Image generation failed. This could be due to content safety filters.");
