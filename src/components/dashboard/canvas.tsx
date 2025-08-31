@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useCallback, useState, useMemo, useRef } from "react";
+import React, { useCallback, useState, useMemo, useRef, useEffect } from "react";
 import ReactFlow, {
   addEdge,
   applyEdgeChanges,
@@ -96,23 +96,16 @@ export function Canvas() {
     (event) => {
       const sourceNodeId = connectingNodeId.current.nodeId;
       const sourceHandleId = connectingNodeId.current.handleId;
-
+      
       if (!sourceNodeId || !reactFlowWrapper.current || !reactFlowInstance) {
           return;
       }
       
-      const targetIsPane = (event.target as HTMLElement).classList.contains(
-        'react-flow__pane'
-      );
+      const targetIsPane = (event.target as HTMLElement).classList.contains('react-flow__pane');
 
       if (targetIsPane && event instanceof MouseEvent) {
-        // we need to remove the wrapper bounds, in order to get the correct position
         const { top, left } = reactFlowWrapper.current.getBoundingClientRect();
-        const position = reactFlowInstance.screenToFlowPosition({
-          x: event.clientX,
-          y: event.clientY,
-        });
-
+        
         setMenu({
           top: event.clientY - top,
           left: event.clientX - left,
@@ -172,7 +165,7 @@ export function Canvas() {
   }, []);
 
   const updateNodeData = useCallback(
-    (id: string, data: Partial<Omit<NodeData, 'id' | 'onDelete' | 'onUpdate' | 'nodes' | 'edges' | 'isGenerating' | 'onDeleteEdge'>>) => {
+    (id: string, data: Partial<Omit<NodeData, 'id' | 'onDelete' | 'onUpdate'>>) => {
         setNodes(nds =>
             nds.map(node =>
                 node.id === id ? { ...node, data: { ...node.data, ...data } } : node
@@ -235,36 +228,37 @@ export function Canvas() {
         setNodes(nds => [...nds, newNode as Node<NodeData>]);
 
         if (sourceNodeId) {
-            const sourceNode = nodes.find(node => node.id === sourceNodeId);
-            if (sourceNode) {
-                const newEdge = {
-                    id: `${sourceNodeId}-${newNodeId}`,
-                    source: sourceNodeId,
-                    sourceHandle,
-                    target: newNodeId,
-                    style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
-                    type: 'default',
-                };
-                setEdges(eds => addEdge(newEdge, eds));
-            }
+            setNodes(nds => {
+                const sourceNode = nds.find(node => node.id === sourceNodeId);
+                if (sourceNode) {
+                    const newEdge = {
+                        id: `${sourceNodeId}-${newNodeId}`,
+                        source: sourceNodeId,
+                        sourceHandle,
+                        target: newNodeId,
+                        style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
+                        type: 'default',
+                    };
+                    setEdges(eds => addEdge(newEdge, eds));
+                }
+                return nds;
+            });
         }
     },
     [reactFlowInstance, nodes, toast, deleteNode, updateNodeData, deleteEdge]
   );
 
-
-  const nodesWithCallbacks = useMemo(
-    () =>
-      nodes.map((node) => ({
-        ...node,
-        data: {
-          ...node.data,
-          nodes: nodes,
-          edges: edges,
-        },
-      })),
-    [nodes, edges]
-  );
+  const nodesWithSharedData = useMemo(() => {
+    return nodes.map(node => ({
+      ...node,
+      data: {
+        ...node.data,
+        nodes: nodes,
+        edges: edges,
+        onUpdate: updateNodeData,
+      },
+    }));
+  }, [nodes, edges, updateNodeData]);
 
  const animatedEdges = useMemo(() => {
     return edges.map(edge => {
@@ -280,7 +274,7 @@ export function Canvas() {
   return (
     <div className="relative w-full h-[calc(100vh-3.5rem)] overflow-hidden" ref={reactFlowWrapper}>
       <ReactFlow
-        nodes={nodesWithCallbacks}
+        nodes={nodesWithSharedData}
         edges={animatedEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
@@ -312,5 +306,3 @@ export function Canvas() {
     </div>
   );
 }
-
-    
