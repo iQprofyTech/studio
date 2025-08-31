@@ -366,12 +366,6 @@ export function Node({ id, data, selected }: NodeProps) {
                             <Upload className="w-3 h-3 mr-1.5" />
                             Upload
                         </Button>
-                        {type === 'Audio' && 
-                            <Button variant="outline" size="sm">
-                            <Mic className="w-3 h-3 mr-1.5" />
-                            Record
-                            </Button>
-                        }
                         </div>
                     )}
                 </div>
