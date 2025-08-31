@@ -212,7 +212,12 @@ export function Node({ id, data, selected }: NodeProps) {
             toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
             let response;
             if (imageInput) {
-                response = await generateVideoFromImage({ prompt: prompt || "Animate this image", photoDataUri: imageInput });
+                const videoAspectRatio = primaryInputNode?.aspectRatio || aspectRatio;
+                response = await generateVideoFromImage({ 
+                    prompt: prompt || "Animate this image", 
+                    photoDataUri: imageInput,
+                    aspectRatio: videoAspectRatio
+                });
             } else {
                 response = await generateVideoFromText({ prompt: generationPrompt! });
             }
@@ -254,7 +259,7 @@ export function Node({ id, data, selected }: NodeProps) {
       setIsLoading(false);
       onUpdate(id, { isGenerating: false });
     }
-  }, [type, prompt, output, id, onUpdate, toast, nodes, edges, model]);
+  }, [type, prompt, output, aspectRatio, model, id, onUpdate, toast, nodes, edges]);
   
   const handleClearOutput = useCallback(() => {
     onUpdate(id, { output: null });

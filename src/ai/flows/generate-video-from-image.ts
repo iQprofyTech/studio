@@ -1,3 +1,4 @@
+
 // Implemented the flow to generate a video from an image provided as a data URI, using the Google Veo model.
 
 'use server';
@@ -20,6 +21,7 @@ const GenerateVideoFromImageInputSchema = z.object({
       "A photo to use as the first frame to create a video, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
     ),
   prompt: z.string().describe('A description of what you want to see in the video.'),
+  aspectRatio: z.string().optional().describe('The aspect ratio of the generated video.'),
 });
 export type GenerateVideoFromImageInput = z.infer<
   typeof GenerateVideoFromImageInputSchema
@@ -74,7 +76,7 @@ const generateVideoFromImageFlow = ai.defineFlow(
       ],
       config: {
         durationSeconds: 5,
-        aspectRatio: '9:16',
+        aspectRatio: input.aspectRatio || '9:16',
         personGeneration: 'allow_adult',
       },
     });

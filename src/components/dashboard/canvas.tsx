@@ -210,7 +210,7 @@ export function Canvas() {
                 id: newNodeId,
                 type,
                 prompt: '',
-                aspectRatio: '1:1',
+                aspectRatio: '16:9',
                 model: defaultModel,
                 output: null,
                 isGenerating: false,
