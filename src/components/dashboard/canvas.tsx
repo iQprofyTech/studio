@@ -92,23 +92,26 @@ export function Canvas() {
 
   const onConnectEnd: OnConnectEnd = useCallback(
     (event) => {
-        const sourceNodeId = connectingNodeId.current.nodeId;
-        const targetIsPane = (event.target as HTMLElement)?.classList.contains('react-flow__pane');
+      const sourceNodeId = connectingNodeId.current.nodeId;
+      const targetIsPane = (event.target as HTMLElement)?.classList.contains('react-flow__pane');
 
-        if (targetIsPane && sourceNodeId && reactFlowWrapper.current && reactFlowInstance && event instanceof MouseEvent) {
-            const { top, left } = reactFlowWrapper.current.getBoundingClientRect();
-            const position = reactFlowInstance.screenToFlowPosition({
-                x: event.clientX - left,
-                y: event.clientY - top,
-            });
+      if (targetIsPane && sourceNodeId && reactFlowWrapper.current && reactFlowInstance && event instanceof MouseEvent) {
+          const { top, left } = reactFlowWrapper.current.getBoundingClientRect();
+          const position = reactFlowInstance.screenToFlowPosition({
+              x: event.clientX - left,
+              y: event.clientY - top,
+          });
 
+          // Adding a short delay to prevent the pane click from closing the menu immediately
+          setTimeout(() => {
             setMenu({
                 top: position.y,
                 left: position.x,
                 sourceNodeId: sourceNodeId,
                 sourceHandleId: connectingNodeId.current.handleId,
             });
-        }
+          }, 10);
+      }
     },
     [reactFlowInstance]
   );
