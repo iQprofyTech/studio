@@ -68,6 +68,23 @@
   }
 }
 
+@layer utilities {
+    @keyframes gradient-pan {
+      0% {
+        background-position: 0% 50%;
+      }
+      50% {
+        background-position: 100% 50%;
+      }
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+    .animate-gradient-pan {
+      animation: gradient-pan 3s ease infinite;
+    }
+}
+
 @layer components {
     .react-flow__edge-path {
         @apply transition-all duration-300;

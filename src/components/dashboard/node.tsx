@@ -122,14 +122,13 @@ function OutputHandle({ color, isConnected }: { color: string; isConnected: bool
 
 
 export function Node({ id, data, selected }: NodeProps) {
-  const { type, prompt, aspectRatio, model, onDelete, onUpdate, output, nodes, edges, onDeleteEdge } = data;
+  const { type, prompt, aspectRatio, model, onDelete, onUpdate, output, nodes, edges, onDeleteEdge, isGenerating } = data;
   const Icon = nodeInfo[type].icon;
   const color = nodeInfo[type].color;
   const toolbarItems = nodeToolbarConfig[type];
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
   const [isImproving, setIsImproving] = useState(false);
 
   const isTarget = edges.some(edge => edge.target === id);
@@ -184,7 +183,6 @@ export function Node({ id, data, selected }: NodeProps) {
   }, [prompt, id, onUpdate, toast]);
 
   const handleGenerate = useCallback(async () => {
-    setIsLoading(true);
     onUpdate(id, { output: null, isGenerating: true });
     try {
       let result;
@@ -194,19 +192,13 @@ export function Node({ id, data, selected }: NodeProps) {
       const textInputs = inputNodes.filter(n => n.data.type === 'Text' && n.data.output).map(n => n.data.output as string);
       const imageInputs = inputNodes.filter(n => n.data.type === 'Image' && n.data.output).map(n => n.data.output as string);
       const audioInputs = inputNodes.filter(n => n.data.type === 'Audio' && n.data.output).map(n => n.data.output as string);
+      const videoInputs = inputNodes.filter(n => n.data.type === 'Video' && n.data.output).map(n => n.data.output as string);
 
-      const primaryTextInput = textInputs[0];
-      const primaryImageInput = imageInputs[0];
-      const primaryAudioInput = audioInputs[0];
-
-      const generationPrompt = primaryTextInput || prompt;
+      const generationPrompt = textInputs.join('\n') || prompt;
+      const imageInput = imageInputs[0];
+      const audioInput = audioInputs[0];
       
-      // Video stitching logic
-      if (type === 'Video' && model === 'Video Stitcher') {
-          const videoInputs = inputNodes
-            .filter(n => n.data.type === 'Video' && n.data.output)
-            .map(n => n.data.output as string);
-
+      if (model === 'Video Stitcher') {
           if (videoInputs.length < 1) { 
               throw new Error("Video Stitcher requires at least 1 connected video input.");
           }
@@ -219,13 +211,13 @@ export function Node({ id, data, selected }: NodeProps) {
           toast({ title: "✅ Video stitching complete!" });
 
       } else if (type === 'Text') {
-          if (primaryAudioInput) {
+          if (audioInput) {
             toast({ title: "🎤 Transcribing audio...", description: "This may take a moment." });
-            const response = await transcribeAudio({ audioDataUri: primaryAudioInput });
+            const response = await transcribeAudio({ audioDataUri: audioInput });
             result = response.transcript;
             toast({ title: "✅ Transcription complete!" });
-          } else if (primaryImageInput) {
-              const response = await generateTextFromImage({ photoDataUri: primaryImageInput });
+          } else if (imageInput) {
+              const response = await generateTextFromImage({ photoDataUri: imageInput });
               result = response.description;
           } else {
               if (!generationPrompt) {
@@ -241,18 +233,18 @@ export function Node({ id, data, selected }: NodeProps) {
           const response = await generateImageFromText({ prompt: generationPrompt });
           result = response.imageDataUri;
       } else if (type === 'Video') {
-           if (!generationPrompt && !primaryImageInput) {
+           if (!generationPrompt && !imageInput) {
               throw new Error("Prompt or image input is required for video generation.");
           }
           toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
           let response;
           const sourceImageNode = inputNodes.find(n => n.data.type === 'Image');
           
-          if (primaryImageInput) {
+          if (imageInput) {
               const videoAspectRatio = sourceImageNode?.data.aspectRatio || aspectRatio;
               response = await generateVideoFromImage({ 
-                  prompt: prompt || "Animate this image", 
-                  photoDataUri: primaryImageInput,
+                  prompt: generationPrompt || "Animate this image", 
+                  photoDataUri: imageInput,
                   aspectRatio: videoAspectRatio
               });
           } else {
@@ -292,7 +284,6 @@ export function Node({ id, data, selected }: NodeProps) {
         description: toastDescription,
       });
     } finally {
-      setIsLoading(false);
       onUpdate(id, { isGenerating: false });
     }
   }, [type, prompt, aspectRatio, model, id, onUpdate, toast, nodes, edges]);
@@ -329,112 +320,122 @@ export function Node({ id, data, selected }: NodeProps) {
         className={cn(
           "w-[380px] rounded-2xl shadow-2xl bg-background/50 backdrop-blur-xl border-2 transition-all duration-300",
           selected 
-            ? "border-transparent bg-clip-padding" 
-            : "border-white/10 dark:border-white/5"
+            ? "border-transparent bg-clip-padding p-[2px]" 
+            : "border-white/10 dark:border-white/5",
+           isGenerating && "animate-gradient-pan"
         )}
-        style={selected ? { 
-            backgroundImage: 'linear-gradient(hsl(var(--background)), hsl(var(--background))), linear-gradient(to right, #4BC178, #B555C2)',
+        style={selected || isGenerating ? { 
+            backgroundSize: '200% 200%',
+            backgroundImage: 'linear-gradient(hsl(var(--background)), hsl(var(--background))), linear-gradient(to right, #4BC178, #B555C2, #4BC178)',
             backgroundOrigin: 'border-box',
             backgroundClip: 'padding-box, border-box',
         } : {}}
        >
-        <div className={`handle p-3 flex items-center justify-between cursor-grab border-b border-white/10`}>
-          <div className="flex items-center gap-2">
-            <Icon className={`w-5 h-5`} style={{ color }}/>
-            <h3 className="font-semibold">{type}</h3>
-          </div>
-          <div className="flex items-center gap-1 opacity-100">
-            <NodeToolbar 
-              nodeId={id} 
-              items={toolbarItems} 
-              onDelete={onDelete} 
-              onUpdate={onUpdate}
-              type={type}
-              model={model}
-              aspectRatio={aspectRatio}
-            />
-          </div>
-        </div>
-        
-        <CardContent className="p-3 space-y-3">
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            className="hidden"
-            accept={type === 'Image' ? 'image/*' : type === 'Video' ? 'video/mp4,video/quicktime' : 'audio/*'}
-          />
-          <div className={cn("bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden relative group/preview", aspectRatios[aspectRatio] || "aspect-square")}>
-             {isLoading && (
-                <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-10">
-                    <LoaderCircle className="w-8 h-8 text-primary animate-spin" />
-                    <p className="text-sm text-primary-foreground mt-2">Generating...</p>
-                </div>
-              )}
-              {output ? (
+        <div 
+          className={cn(
+            "w-full h-full bg-background/80 rounded-[calc(var(--radius)-4px)]",
+             (selected || isGenerating) && "bg-background/90"
+            )}
+        >
+            <div className={`handle p-3 flex items-center justify-between cursor-grab border-b border-white/10`}>
+              <div className="flex items-center gap-2">
+                <Icon className={`w-5 h-5`} style={{ color }}/>
+                <h3 className="font-semibold">{type}</h3>
+              </div>
+              <div className="flex items-center gap-1 opacity-100">
+                <NodeToolbar 
+                  nodeId={id} 
+                  items={toolbarItems} 
+                  onDelete={onDelete} 
+                  onUpdate={onUpdate}
+                  type={type}
+                  model={model}
+                  aspectRatio={aspectRatio}
+                />
+              </div>
+            </div>
+            
+            <CardContent className="p-3 space-y-3">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
+                className="hidden"
+                accept={type === 'Image' ? 'image/*' : type === 'Video' ? 'video/mp4,video/quicktime' : 'audio/*'}
+              />
+              <div className={cn("bg-muted/30 rounded-lg flex items-center justify-center overflow-hidden relative group/preview", aspectRatios[aspectRatio] || "aspect-square")}>
+                 {isGenerating && !output && (
+                    <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center z-10">
+                        <LoaderCircle className="w-8 h-8 text-primary animate-spin" />
+                        <p className="text-sm text-primary-foreground mt-2">Generating...</p>
+                    </div>
+                  )}
+                  {output ? (
+                    <>
+                      {type === "Image" && <Image src={output} alt="Generated image" fill objectFit="cover" />}
+                      {type === "Video" && <video src={output} controls className="w-full h-full object-cover" />}
+                      {type === "Audio" && <div className="p-4 w-full"><audio src={output} controls className="w-full" /></div>}
+                      {type === 'Text' && <div className="p-4 text-sm overflow-y-auto max-h-60 w-full text-left"><p>{output}</p></div>}
+                      
+                       <div className="absolute top-2 right-2 z-10 flex flex-col gap-2 opacity-0 group-hover/preview:opacity-100 transition-opacity">
+                        {type === "Text" && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white" onClick={handleCopy}><Copy className="w-4 h-4" /></Button>
+                        )}
+                        {(type === "Image" || type === "Video" || type === "Audio") && (
+                          <Button variant="ghost" size="icon" className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white" onClick={handleDownload}><Download className="w-4 h-4" /></Button>
+                        )}
+                        <Button variant="ghost" size="icon" className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white" onClick={handleClearOutput}><XCircle className="w-4 h-4" /></Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-muted-foreground/50 text-sm p-4 text-center flex flex-col items-center justify-center gap-2">
+                        <p>
+                            {(type === "Image" || type === "Video") 
+                                ? `Preview (${aspectRatio}) will appear here`
+                                : "Preview will appear here"
+                            }
+                        </p>
+                        {(type === "Image" || type === "Video" || type === "Audio") && !isTarget && (
+                            <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                                <Upload className="w-3 h-3 mr-1.5" />
+                                Upload
+                            </Button>
+                            </div>
+                        )}
+                    </div>
+                  )}
+              </div>
+              {selected && (
                 <>
-                  {type === "Image" && <Image src={output} alt="Generated image" fill objectFit="cover" />}
-                  {type === "Video" && <video src={output} controls className="w-full h-full object-cover" />}
-                  {type === "Audio" && <div className="p-4 w-full"><audio src={output} controls className="w-full" /></div>}
-                  {type === 'Text' && <div className="p-4 text-sm overflow-y-auto max-h-60 w-full text-left"><p>{output}</p></div>}
-                  
-                   <div className="absolute top-2 right-2 z-10 flex flex-col gap-2 opacity-0 group-hover/preview:opacity-100 transition-opacity">
-                    {type === "Text" && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white" onClick={handleCopy}><Copy className="w-4 h-4" /></Button>
-                    )}
-                    {(type === "Image" || type === "Video" || type === "Audio") && (
-                      <Button variant="ghost" size="icon" className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white" onClick={handleDownload}><Download className="w-4 h-4" /></Button>
-                    )}
-                    <Button variant="ghost" size="icon" className="h-7 w-7 bg-black/50 hover:bg-black/70 text-white" onClick={handleClearOutput}><XCircle className="w-4 h-4" /></Button>
+                  <div className="relative">
+                      <Textarea
+                          placeholder={`Enter your ${type.toLowerCase()} prompt here...`}
+                          value={prompt}
+                          onChange={(e) => onUpdate(id, { prompt: e.target.value })}
+                          className="bg-background/70 text-sm min-h-[80px] pr-8"
+                      />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                        variant="outline"
+                        size="icon" 
+                        className="h-10 w-10 flex-shrink-0"
+                        onClick={handleImprovePrompt}
+                        disabled={isImproving || !prompt}
+                        title="Improve prompt with AI"
+                    >
+                        {isImproving ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                    </Button>
+                    <Button className="w-full" onClick={handleGenerate} disabled={isGenerating}>
+                        {isGenerating ? <LoaderCircle className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+                        {isGenerating ? "Generating..." : "Generate"}
+                    </Button>
                   </div>
                 </>
-              ) : (
-                <div className="text-muted-foreground/50 text-sm p-4 text-center flex flex-col items-center justify-center gap-2">
-                    <p>
-                        {(type === "Image" || type === "Video") 
-                            ? `Preview (${aspectRatio}) will appear here`
-                            : "Preview will appear here"
-                        }
-                    </p>
-                    {(type === "Image" || type === "Video" || type === "Audio") && !isTarget && (
-                        <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                            <Upload className="w-3 h-3 mr-1.5" />
-                            Upload
-                        </Button>
-                        </div>
-                    )}
-                </div>
               )}
-          </div>
-          {selected && (
-            <>
-              <Textarea
-                  placeholder={`Enter your ${type.toLowerCase()} prompt here...`}
-                  value={prompt}
-                  onChange={(e) => onUpdate(id, { prompt: e.target.value })}
-                  className="bg-background/70 text-sm min-h-[80px]"
-              />
-              <div className="flex items-center gap-2">
-                <Button 
-                    variant="outline"
-                    size="icon" 
-                    className="h-10 w-10 flex-shrink-0"
-                    onClick={handleImprovePrompt}
-                    disabled={isImproving || !prompt}
-                    title="Improve prompt with AI"
-                >
-                    {isImproving ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-                </Button>
-                <Button className="w-full" onClick={handleGenerate} disabled={isLoading}>
-                    {isLoading ? <LoaderCircle className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
-                    {isLoading ? "Generating..." : "Generate"}
-                </Button>
-              </div>
-            </>
-          )}
-        </CardContent>
-
+            </CardContent>
+        </div>
       </Card>
       <OutputHandle color={color} isConnected={isSource} />
     </div>
