@@ -12,7 +12,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { MediaPart } from 'genkit/experimental/ai';
+import { MediaPart } from '@genkit-ai/ai/model';
 
 const GenerateVideoFromImageInputSchema = z.object({
   photoDataUri: z

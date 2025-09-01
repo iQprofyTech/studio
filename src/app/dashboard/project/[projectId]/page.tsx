@@ -1,7 +1,8 @@
 import { Canvas } from "@/components/dashboard/canvas";
 
-export default function ProjectPage({ params }: { params: { projectId: string } }) {
-  // You can use params.projectId to fetch specific project data
+export default async function ProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
+  const { projectId } = await params;
+  // You can use projectId to fetch specific project data
   return (
     <div className="flex-1 overflow-auto">
       <Canvas />

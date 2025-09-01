@@ -1,0 +1,17 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm ci",
+  "framework": "nextjs",
+  "functions": {
+    "src/app/api/**/*.ts": {
+      "maxDuration": 120
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/genkit/:path*",
+      "destination": "/api/genkit/:path*"
+    }
+  ]
+}

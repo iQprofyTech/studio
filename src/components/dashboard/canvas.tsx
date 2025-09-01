@@ -142,7 +142,9 @@ export function Canvas() {
           ...connection,
           id: `${connection.source}-${connection.target}`,
           style: { stroke: nodeInfo[sourceNode.data.type].color, strokeWidth: 2.5 },
-          type: 'default'
+          type: 'default',
+          source: connection.source!,
+          target: connection.target!
          };
          setEdges((eds) => addEdge(newEdge, eds));
 
@@ -209,6 +211,7 @@ export function Canvas() {
             data: {
                 id: newNodeId,
                 type,
+                position: pos,
                 prompt: '',
                 aspectRatio: '16:9',
                 model: defaultModel,

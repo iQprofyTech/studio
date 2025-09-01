@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Enable standalone output for Docker
+  output: process.env.NODE_ENV === 'production' ? 'standalone' : undefined,
   images: {
     remotePatterns: [
       {
@@ -24,12 +26,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-   serverActions: {
-    bodySizeLimit: '4.5mb',
-    // Allow more time for video generation to complete.
-    // 2 minutes might not be enough for Veo.
-    executionTimeout: 120,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '4.5mb',
+      // Allow more time for video generation to complete.
+      // 2 minutes might not be enough for Veo.
+      allowedOrigins: ['localhost:3000', 'localhost:9002'],
+    },
   },
+  serverExternalPackages: ['genkit'],
 };
 
 export default nextConfig;
