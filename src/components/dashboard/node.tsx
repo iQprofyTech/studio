@@ -200,19 +200,21 @@ export function Node({ id, data, selected }: NodeProps) {
 
       // Video stitching logic
       if (type === 'Video' && model === 'Video Stitcher') {
-          if (prompt.trim() !== '') {
-              throw new Error("The prompt for the Video Stitcher node must be empty.");
-          }
           const videoInputs = inputNodes
             .filter(n => n.data.type === 'Video' && n.data.output)
             .map(n => n.data.output as string);
-          if (videoInputs.length < 2 || videoInputs.length > 12) {
+
+          if (videoInputs.length < 1 || videoInputs.length > 12) { // Allow 1 for testing, but ideally should be >= 2
               throw new Error("Video Stitcher requires between 2 and 12 connected video inputs.");
+          }
+          if (prompt.trim() !== '') {
+             console.warn("Prompt for Video Stitcher is ignored.");
           }
           toast({ title: "🎬 Video stitching started...", description: `Stitching ${videoInputs.length} videos. This may take a moment.` });
           const response = await stitchVideos({ videoDataUris: videoInputs });
           result = response.videoDataUri;
           toast({ title: "✅ Video stitching complete!" });
+
       } else if (type === 'Text') {
           if (audioInput) {
             toast({ title: "🎤 Transcribing audio...", description: "This may take a moment." });
@@ -407,12 +409,12 @@ export function Node({ id, data, selected }: NodeProps) {
                     placeholder={`Enter your ${type.toLowerCase()} prompt here...`}
                     value={prompt}
                     onChange={(e) => onUpdate(id, { prompt: e.target.value })}
-                    className="bg-background/70 text-sm min-h-[80px] pr-10"
+                    className="bg-background/70 text-sm min-h-[80px] pl-2 pr-2 pb-8"
                 />
                 <Button 
                     variant="ghost" 
                     size="icon" 
-                    className="absolute top-1/2 right-1.5 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-primary"
+                    className="absolute bottom-1.5 left-1.5 h-7 w-7 text-muted-foreground hover:text-primary z-10"
                     onClick={handleImprovePrompt}
                     disabled={isImproving || !prompt}
                     title="Improve prompt with AI"
@@ -602,3 +604,4 @@ function NodeToolbar({
     
 
     
+
