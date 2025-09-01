@@ -190,22 +190,25 @@ export function Node({ id, data, selected }: NodeProps) {
       let result;
       const inputEdges = edges.filter(edge => edge.target === id);
       const inputNodes = inputEdges.map(edge => nodes.find(node => node.id === edge.source)).filter(Boolean) as ReactFlowNode<NodeData>[];
-      const primaryInputNode = inputNodes[0]?.data;
       
-      const textInput = (primaryInputNode?.type === 'Text' && primaryInputNode.output) ? primaryInputNode.output : null;
-      const imageInput = (primaryInputNode?.type === 'Image' && primaryInputNode.output) ? primaryInputNode.output : (type === 'Image' && output) ? output : null;
-      const audioInput = (primaryInputNode?.type === 'Audio' && primaryInputNode.output) ? primaryInputNode.output : null;
+      const textInputs = inputNodes.filter(n => n.data.type === 'Text' && n.data.output).map(n => n.data.output as string);
+      const imageInputs = inputNodes.filter(n => n.data.type === 'Image' && n.data.output).map(n => n.data.output as string);
+      const audioInputs = inputNodes.filter(n => n.data.type === 'Audio' && n.data.output).map(n => n.data.output as string);
 
-      const generationPrompt = textInput || prompt;
+      const primaryTextInput = textInputs[0];
+      const primaryImageInput = imageInputs[0];
+      const primaryAudioInput = audioInputs[0];
 
+      const generationPrompt = primaryTextInput || prompt;
+      
       // Video stitching logic
       if (type === 'Video' && model === 'Video Stitcher') {
           const videoInputs = inputNodes
             .filter(n => n.data.type === 'Video' && n.data.output)
             .map(n => n.data.output as string);
 
-          if (videoInputs.length < 1 || videoInputs.length > 12) { // Allow 1 for testing, but ideally should be >= 2
-              throw new Error("Video Stitcher requires between 2 and 12 connected video inputs.");
+          if (videoInputs.length < 1) { 
+              throw new Error("Video Stitcher requires at least 1 connected video input.");
           }
           if (prompt.trim() !== '') {
              console.warn("Prompt for Video Stitcher is ignored.");
@@ -216,13 +219,13 @@ export function Node({ id, data, selected }: NodeProps) {
           toast({ title: "✅ Video stitching complete!" });
 
       } else if (type === 'Text') {
-          if (audioInput) {
+          if (primaryAudioInput) {
             toast({ title: "🎤 Transcribing audio...", description: "This may take a moment." });
-            const response = await transcribeAudio({ audioDataUri: audioInput });
+            const response = await transcribeAudio({ audioDataUri: primaryAudioInput });
             result = response.transcript;
             toast({ title: "✅ Transcription complete!" });
-          } else if (imageInput) {
-              const response = await generateTextFromImage({ photoDataUri: imageInput });
+          } else if (primaryImageInput) {
+              const response = await generateTextFromImage({ photoDataUri: primaryImageInput });
               result = response.description;
           } else {
               if (!generationPrompt) {
@@ -238,16 +241,18 @@ export function Node({ id, data, selected }: NodeProps) {
           const response = await generateImageFromText({ prompt: generationPrompt });
           result = response.imageDataUri;
       } else if (type === 'Video') {
-           if (!generationPrompt && !imageInput) {
+           if (!generationPrompt && !primaryImageInput) {
               throw new Error("Prompt or image input is required for video generation.");
           }
           toast({ title: "🎬 Video generation started...", description: "This may take a minute or two. Please be patient." });
           let response;
-          if (imageInput) {
-              const videoAspectRatio = primaryInputNode?.aspectRatio || aspectRatio;
+          const sourceImageNode = inputNodes.find(n => n.data.type === 'Image');
+          
+          if (primaryImageInput) {
+              const videoAspectRatio = sourceImageNode?.data.aspectRatio || aspectRatio;
               response = await generateVideoFromImage({ 
                   prompt: prompt || "Animate this image", 
-                  photoDataUri: imageInput,
+                  photoDataUri: primaryImageInput,
                   aspectRatio: videoAspectRatio
               });
           } else {
@@ -290,7 +295,7 @@ export function Node({ id, data, selected }: NodeProps) {
       setIsLoading(false);
       onUpdate(id, { isGenerating: false });
     }
-  }, [type, prompt, output, aspectRatio, model, id, onUpdate, toast, nodes, edges]);
+  }, [type, prompt, aspectRatio, model, id, onUpdate, toast, nodes, edges]);
   
   const handleClearOutput = useCallback(() => {
     onUpdate(id, { output: null });
@@ -391,7 +396,7 @@ export function Node({ id, data, selected }: NodeProps) {
                             : "Preview will appear here"
                         }
                     </p>
-                    {selected && (type === "Image" || type === "Video" || type === "Audio") && (
+                    {(type === "Image" || type === "Video" || type === "Audio") && !isTarget && (
                         <div className="flex gap-2">
                         <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                             <Upload className="w-3 h-3 mr-1.5" />
@@ -404,28 +409,28 @@ export function Node({ id, data, selected }: NodeProps) {
           </div>
           {selected && (
             <>
-               <div className="relative">
-                 <Textarea
-                    placeholder={`Enter your ${type.toLowerCase()} prompt here...`}
-                    value={prompt}
-                    onChange={(e) => onUpdate(id, { prompt: e.target.value })}
-                    className="bg-background/70 text-sm min-h-[80px] pl-2 pr-2 pb-8"
-                />
+              <Textarea
+                  placeholder={`Enter your ${type.toLowerCase()} prompt here...`}
+                  value={prompt}
+                  onChange={(e) => onUpdate(id, { prompt: e.target.value })}
+                  className="bg-background/70 text-sm min-h-[80px]"
+              />
+              <div className="flex items-center gap-2">
                 <Button 
-                    variant="ghost" 
+                    variant="outline"
                     size="icon" 
-                    className="absolute bottom-1.5 left-1.5 h-7 w-7 text-muted-foreground hover:text-primary z-10"
+                    className="h-10 w-10 flex-shrink-0"
                     onClick={handleImprovePrompt}
                     disabled={isImproving || !prompt}
                     title="Improve prompt with AI"
                 >
                     {isImproving ? <LoaderCircle className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                 </Button>
-               </div>
-              <Button className="w-full" onClick={handleGenerate} disabled={isLoading}>
-                  {isLoading ? <LoaderCircle className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
-                  {isLoading ? "Generating..." : "Generate"}
-              </Button>
+                <Button className="w-full" onClick={handleGenerate} disabled={isLoading}>
+                    {isLoading ? <LoaderCircle className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
+                    {isLoading ? "Generating..." : "Generate"}
+                </Button>
+              </div>
             </>
           )}
         </CardContent>
@@ -605,3 +610,6 @@ function NodeToolbar({
 
     
 
+
+
+    
